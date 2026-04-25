@@ -2,38 +2,35 @@ let DATA = null;
 let currentMode = 'line';
 let currentSectionIndex = 0;
 
+// Переключение режима
 function setMode(mode) {
     currentMode = mode;
-    document.getElementById('btn-line').classList.toggle('active', mode === 'line');
-    document.getElementById('btn-ffs').classList.toggle('active', mode === 'ffs');
+    const btnLine = document.getElementById('btn-line');
+    const btnFfs = document.getElementById('btn-ffs');
+    if(btnLine) btnLine.classList.toggle('active', mode === 'line');
+    if(btnFfs) btnFfs.classList.toggle('active', mode === 'ffs');
 }
 
+// Начало проверки
 async function startInspection() {
     const fio = document.getElementById("fio").value;
     const instructor = document.getElementById("instructor").value;
-    if (!fio || !instructor) return alert("Заполните ФИО проверяемого и проверяющего");
+    
+    if (!fio || !instructor) {
+        alert("Заполните ФИО проверяемого и ФИО проверяющего");
+        return;
+    }
 
-    const file = currentMode === 'line' ? 'data.json' : 'data_ffs.json';
+    const fileName = currentMode === 'line' ? 'data.json' : 'data_ffs.json';
     
     try {
-        const response = await fetch(file);
+        const response = await fetch(fileName);
+        if (!response.ok) throw new Error("Файл не найден");
         
-        // Проверяем, не пустой ли ответ
-        if (!response.ok) {
-            throw new Error(`Сервер ответил кодом ${response.status}. Файл ${file} не найден.`);
-        }
-
-        const textData = await response.text(); // Сначала читаем как текст
+        const text = await response.text();
+        DATA = JSON.parse(text);
         
-        try {
-            DATA = JSON.parse(textData); // Пробуем превратить в объект
-        } catch (jsonError) {
-            console.error("Ошибка в структуре JSON:", jsonError);
-            console.log("Содержимое файла, которое пришло с сервера:", textData);
-            throw new Error(`В файле ${file} ошибка синтаксиса! Проверьте лишние запятые или кавычки. Детали: ${jsonError.message}`);
-        }
-        
-        // Если всё ок, продолжаем инициализацию
+        // Подготовка данных
         DATA.checklists.forEach(sec => sec.items.forEach(i => {
             i.ok = false; i.note = ""; i.img = null;
         }));
@@ -41,67 +38,81 @@ async function startInspection() {
         currentSectionIndex = 0;
         renderSection();
         show('screen-test');
-        
-    } catch (e) { 
-        // Показываем реальную причину ошибки пользователю
-        alert("ОШИБКА: " + e.message); 
+    } catch (e) {
+        alert("Ошибка загрузки данных: " + e.message);
     }
 }
+
+// Отрисовка вопросов текущей секции
 function renderSection() {
     const section = DATA.checklists[currentSectionIndex];
-    document.getElementById("section-title").innerText = section.name;
+    
+    // Элементы
+    const titleEl = document.getElementById("section-title");
     const itemsBox = document.getElementById("checklist-items");
     const detailsBox = document.getElementById("checklist-details");
-    itemsBox.innerHTML = ""; detailsBox.innerHTML = "";
+
+    if (!titleEl || !itemsBox || !detailsBox) return;
+
+    titleEl.innerText = section.name;
+    itemsBox.innerHTML = "";
+    detailsBox.innerHTML = "";
 
     section.items.forEach(item => {
+        // Чекбоксы
         const itemDiv = document.createElement("div");
         itemDiv.className = "check-item";
-        itemDiv.innerHTML = `<input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}><label for="c_${item.id}">${item.label}</label>`;
+        itemDiv.innerHTML = `
+            <input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}>
+            <label for="c_${item.id}">${item.label}</label>
+        `;
         itemsBox.appendChild(itemDiv);
 
+        // Детали (фото и комментарий)
         const detailDiv = document.createElement("div");
         detailDiv.className = "detail-item";
-        detailDiv.innerHTML = `<b>К пункту: ${item.label}</b>
+        detailDiv.innerHTML = `
+            <b style="font-size:12px; color:#666;">${item.label}</b>
             <textarea id="n_${item.id}" placeholder="Комментарий...">${item.note}</textarea>
             <input type="file" accept="image/*" onchange="uploadImg(this, '${item.id}')">
-            <div id="p_${item.id}">${item.img ? `<img src="${item.img}" width="80" style="margin-top:5px;">` : ''}</div>`;
+            <div id="p_${item.id}" style="margin-top:5px;">
+                ${item.img ? `<img src="${item.img}" width="80">` : ''}
+            </div>
+        `;
         detailsBox.appendChild(detailDiv);
     });
+    
     updateNavButtons();
 }
 
-async function uploadImg(input, id) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const b64 = e.target.result;
-            DATA.checklists.forEach(s => s.items.forEach(i => { if(i.id === id) i.img = b64; }));
-            document.getElementById(`p_${id}`).innerHTML = `<img src="${b64}" width="80" style="margin-top:5px;">`;
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
+// Навигация
+function updateNavButtons() {
+    const isFirst = currentSectionIndex === 0;
+    const isLast = currentSectionIndex === DATA.checklists.length - 1;
+    
+    const prevBtn = document.getElementById("btn-prev");
+    const nextBtn = document.getElementById("btn-next");
+    const finishBtn = document.getElementById("btn-finish");
+
+    if(prevBtn) prevBtn.style.display = isFirst ? "none" : "block";
+    if(nextBtn) nextBtn.style.display = isLast ? "none" : "block";
+    if(finishBtn) finishBtn.classList.toggle("hidden", !isLast);
 }
 
 function saveState() {
     const section = DATA.checklists[currentSectionIndex];
     section.items.forEach(item => {
-        item.ok = document.getElementById(`c_${item.id}`).checked;
-        item.note = document.getElementById(`n_${item.id}`).value;
+        const cb = document.getElementById(`c_${item.id}`);
+        const nt = document.getElementById(`n_${item.id}`);
+        if(cb) item.ok = cb.checked;
+        if(nt) item.note = nt.value;
     });
 }
 
 function nextSection() { saveState(); currentSectionIndex++; renderSection(); }
 function prevSection() { saveState(); currentSectionIndex--; renderSection(); }
 
-function updateNavButtons() {
-    const isLast = currentSectionIndex === DATA.checklists.length - 1;
-    document.getElementById("btn-prev").style.display = currentSectionIndex === 0 ? "none" : "block";
-    document.getElementById("btn-next").style.display = isLast ? "none" : "block";
-    document.getElementById("btn-finish").classList.toggle("hidden", !isLast);
-}
-
-// Завершение проверки
+// Завершение и отчет
 function finishInspection() {
     saveState();
     buildReport();
@@ -110,88 +121,113 @@ function finishInspection() {
     initSignature();
 }
 
-// Построение отчета (вынесено в функцию, чтобы вызывать и из истории)
 function buildReport() {
     const container = document.getElementById("report-data");
+    if(!container) return;
+    
     container.innerHTML = "";
     DATA.checklists.forEach(section => {
         const sDiv = document.createElement("div");
-        sDiv.innerHTML = `<h3 style="color:var(--red); margin-top:15px; border-bottom:1px solid #eee;">${section.name}</h3>`;
+        sDiv.innerHTML = `<h3 style="color:rgb(205, 32, 44); margin-top:15px; border-bottom:1px solid #eee;">${section.name}</h3>`;
         section.items.forEach(item => {
             sDiv.innerHTML += `
-                <div style="margin-bottom:10px; border-bottom:1px solid #f0f0f0;">
+                <div style="margin-bottom:10px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
                     <p style="margin:5px 0;"><b>${item.label}</b></p>
-                    <div class="flex-row"><span class="box">${item.ok ? 'X' : ''}</span><span>Статус: ${item.ok ? 'OK' : 'Нарушение'}</span></div>
-                    <p style="font-size:13px; margin:5px 0;">Коммент: ${item.note || '-'}</p>
-                    ${item.img ? `<img src="${item.img}" style="max-width:200px; display:block; margin:5px 0;">` : ''}
+                    <div class="flex-row">
+                        <div style="border:1px solid #000; width:16px; height:16px; text-align:center; line-height:16px; font-size:12px;">${item.ok ? 'X' : ''}</div>
+                        <span style="font-size:14px; margin-left:8px;">Статус: ${item.ok ? 'OK' : 'Нарушение'}</span>
+                    </div>
+                    <p style="font-size:13px; margin:5px 0; color:#444;">Комментарий: ${item.note || '-'}</p>
+                    ${item.img ? `<img src="${item.img}" style="max-width:200px; display:block; margin-top:5px;">` : ''}
                 </div>`;
         });
         container.appendChild(sDiv);
     });
-    document.getElementById("r_fio").innerText = document.getElementById("fio").value;
-    document.getElementById("r_license").innerText = document.getElementById("license").value;
-    document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
-    document.getElementById("r_date").innerText = DATA.savedDate || new Date().toLocaleString();
-    document.getElementById("r_mode").innerText = currentMode.toUpperCase();
+
+    // Заполнение мета-данных
+    const rFio = document.getElementById("r_fio");
+    const rLic = document.getElementById("r_license");
+    const rIns = document.getElementById("r_instructor");
+    const rDat = document.getElementById("r_date");
+    const rMod = document.getElementById("r_mode");
+
+    if(rFio) rFio.innerText = document.getElementById("fio").value;
+    if(rLic) rLic.innerText = document.getElementById("license").value;
+    if(rIns) rIns.innerText = document.getElementById("instructor").value;
+    if(rDat) rDat.innerText = DATA.savedDate || new Date().toLocaleString();
+    if(rMod) rMod.innerText = currentMode.toUpperCase();
 }
 
-// Сохранение в историю (включая все данные DATA)
+// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+
+async function uploadImg(input, id) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const b64 = e.target.result;
+            DATA.checklists.forEach(s => s.items.forEach(i => { if(i.id === id) i.img = b64; }));
+            const pBox = document.getElementById(`p_${id}`);
+            if(pBox) pBox.innerHTML = `<img src="${b64}" width="80" style="margin-top:5px;">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
 function saveToLocalStorage() {
-    const history = JSON.parse(localStorage.getItem("inspections_v2") || "[]");
+    const history = JSON.parse(localStorage.getItem("checkride_history") || "[]");
     const canvas = document.getElementById("signature");
-    
     const entry = {
         fio: document.getElementById("fio").value,
         license: document.getElementById("license").value,
         instructor: document.getElementById("instructor").value,
         date: new Date().toLocaleString(),
         mode: currentMode,
-        fullData: JSON.parse(JSON.stringify(DATA)), // Глубокое копирование
-        signature: canvas.toDataURL()
+        fullData: JSON.parse(JSON.stringify(DATA)),
+        signature: canvas ? canvas.toDataURL() : null
     };
     history.unshift(entry);
-    localStorage.setItem("inspections_v2", JSON.stringify(history.slice(0, 30)));
-}
-
-// Просмотр из истории
-function viewSavedReport(index) {
-    const history = JSON.parse(localStorage.getItem("inspections_v2") || "[]");
-    const saved = history[index];
-    
-    // Заполняем поля, чтобы buildReport сработал
-    document.getElementById("fio").value = saved.fio;
-    document.getElementById("license").value = saved.license;
-    document.getElementById("instructor").value = saved.instructor;
-    currentMode = saved.mode;
-    DATA = saved.fullData;
-    DATA.savedDate = saved.date; // Чтобы сохранить дату создания
-
-    buildReport();
-    
-    // Показываем подпись как картинку
-    const placeholder = document.getElementById("sig-image-placeholder");
-    placeholder.innerHTML = `<img src="${saved.signature}" style="width:250px; border-bottom:1px solid #000;">`;
-    document.getElementById("signature").style.display = "none";
-    
-    show("screen-report");
+    localStorage.setItem("checkride_history", JSON.stringify(history.slice(0, 20)));
 }
 
 function showHistory() {
-    const history = JSON.parse(localStorage.getItem("inspections_v2") || "[]");
+    const history = JSON.parse(localStorage.getItem("checkride_history") || "[]");
     const box = document.getElementById("historyList");
+    if(!box) return;
+    
     box.innerHTML = history.length ? history.map((h, i) => `
-        <div class="history-card" onclick="viewSavedReport(${i})">
+        <div class="history-card" onclick="viewSavedReport(${i})" style="padding:10px; border:1px solid #ddd; margin-bottom:5px; border-radius:5px; cursor:pointer;">
             <b>${h.fio}</b> <small>(${h.mode.toUpperCase()})</small><br>
-            <small>Проверял: ${h.instructor}</small><br>
             <small>${h.date}</small>
         </div>
     `).join("") : "<p>История пуста</p>";
     show("screen-history");
 }
 
+function viewSavedReport(index) {
+    const history = JSON.parse(localStorage.getItem("checkride_history") || "[]");
+    const saved = history[index];
+    
+    document.getElementById("fio").value = saved.fio;
+    document.getElementById("license").value = saved.license;
+    document.getElementById("instructor").value = saved.instructor;
+    currentMode = saved.mode;
+    DATA = saved.fullData;
+    DATA.savedDate = saved.date;
+
+    buildReport();
+    
+    const placeholder = document.getElementById("sig-image-placeholder");
+    const canvas = document.getElementById("signature");
+    if(placeholder && canvas) {
+        placeholder.innerHTML = `<img src="${saved.signature}" style="width:250px; border-bottom:1px solid #000;">`;
+        canvas.style.display = "none";
+    }
+    show("screen-report");
+}
+
 function clearHistory() {
-    if(confirm("Очистить всю историю проверок?")) {
-        localStorage.removeItem("inspections_v2");
+    if(confirm("Очистить историю?")) {
+        localStorage.removeItem("checkride_history");
         showHistory();
     }
 }
@@ -200,32 +236,28 @@ function exportPDF() {
     const canvas = document.getElementById("signature");
     const placeholder = document.getElementById("sig-image-placeholder");
     
-    // Если канвас виден (новый отчет), переводим его в картинку
-    if (canvas.style.display !== "none") {
+    if (canvas && canvas.style.display !== "none") {
         placeholder.innerHTML = `<img src="${canvas.toDataURL()}" style="width:250px; border-bottom:1px solid #000;">`;
         canvas.style.display = "none";
     }
 
     const element = document.getElementById("report-content");
-    const opt = {
+    html2pdf().set({
         margin: 10,
         filename: 'Report.pdf',
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().set(opt).from(element).save().then(() => {
-        // Не возвращаем канвас, если мы смотрим старую запись
-    });
+    }).from(element).save();
 }
 
 function initSignature() {
     const canvas = document.getElementById("signature");
+    if(!canvas) return;
     const ctx = canvas.getContext("2d");
     const placeholder = document.getElementById("sig-image-placeholder");
     
     canvas.style.display = "block";
-    placeholder.innerHTML = "";
+    if(placeholder) placeholder.innerHTML = "";
     ctx.clearRect(0,0,canvas.width, canvas.height);
     
     let drawing = false;
@@ -243,7 +275,8 @@ function initSignature() {
 
 function show(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden');
+    const target = document.getElementById(id);
+    if(target) target.classList.remove('hidden');
     window.scrollTo(0,0);
 }
 
