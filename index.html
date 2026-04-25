@@ -2,80 +2,67 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>CheckRide V5 Enterprise</title>
-    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
-<header>
+<header class="no-print">
     <h1>CheckRide V5 Enterprise</h1>
 </header>
 
 <main>
-    <!-- ЭКРАН 1: РЕГИСТРАЦИЯ -->
+    <!-- ЭКРАН 1: СТАРТ -->
     <section id="screen-start" class="screen">
-        <h2>Регистрация проверки</h2>
-        
+        <h2>Регистрация</h2>
         <div class="mode-selector">
-            <button type="button" id="btn-line" class="mode-btn active" onclick="setMode('line')">LINE</button>
-            <button type="button" id="btn-ffs" class="mode-btn" onclick="setMode('ffs')">FFS</button>
+            <button id="btn-line" class="mode-btn active" onclick="setMode('line')">LINE</button>
+            <button id="btn-ffs" class="mode-btn" onclick="setMode('ffs')">FFS</button>
         </div>
-
-        <div class="input-group">
-            <input type="text" id="fio" placeholder="ФИО специалиста">
-            <input type="text" id="license" placeholder="Номер лицензии">
-        </div>
-
+        <input type="text" id="fio" placeholder="ФИО специалиста">
+        <input type="text" id="license" placeholder="Номер лицензии">
         <button class="main-btn" onclick="startInspection()">Начать проверку</button>
-        <button class="secondary-btn" onclick="showHistory()">История</button>
     </section>
 
-    <!-- ЭКРАН 2: ТЕСТ (ПОШАГОВЫЙ) -->
+    <!-- ЭКРАН 2: ТЕСТ -->
     <section id="screen-test" class="screen hidden">
         <h2 id="section-title"></h2>
         <div id="checklist"></div>
-        
         <div class="navigation-controls">
-            <button id="btn-prev" class="nav-btn" onclick="prevSection()">← Назад</button>
-            <button id="btn-next" class="nav-btn" onclick="nextSection()">Далее →</button>
-            <button id="btn-finish" class="finish-btn hidden" onclick="finishInspection()">Завершить проверку</button>
+            <button id="btn-prev" onclick="prevSection()">← Назад</button>
+            <button id="btn-next" onclick="nextSection()">Далее →</button>
+            <button id="btn-finish" class="finish-btn hidden" onclick="finishInspection()">Завершить</button>
         </div>
     </section>
 
-    <!-- ЭКРАН 3: ОТЧЕТ -->
+    <!-- ЭКРАН 3: ОТЧЕТ (Конвертируется в PDF целиком) -->
     <section id="screen-report" class="screen hidden">
-        <div id="report-to-export">
-            <div class="report-header">
-                <h2 style="color:rgb(205, 32, 44);">Отчет проверки</h2>
+        <div id="report-content" class="report-paper">
+            <h2 class="report-title">ОТЧЕТ ПО ПРОВЕРКЕ</h2>
+            
+            <div class="report-meta">
                 <p><b>Специалист:</b> <span id="r_fio"></span></p>
                 <p><b>Лицензия:</b> <span id="r_license"></span></p>
                 <p><b>Дата:</b> <span id="r_date"></span></p>
                 <p><b>Режим:</b> <span id="r_mode"></span></p>
             </div>
-            <hr>
-            <div id="report_items_container"></div>
-            
-            <div class="signature-block">
+
+            <div id="report-data"></div>
+
+            <div class="signature-area">
                 <p><b>Подпись специалиста:</b></p>
                 <canvas id="signature" width="400" height="150"></canvas>
-                <div id="signature-img-placeholder"></div>
+                <!-- Место для вставки картинки подписи при экспорте -->
+                <div id="sig-image-container"></div>
             </div>
         </div>
 
-        <div class="no-print">
+        <div class="report-actions no-print">
             <button class="main-btn" onclick="exportPDF()">Скачать PDF</button>
             <button class="secondary-btn" onclick="resetApp()">Новая проверка</button>
         </div>
-    </section>
-
-    <!-- ЭКРАН 4: ИСТОРИЯ -->
-    <section id="screen-history" class="screen hidden">
-        <h2>История проверок</h2>
-        <div id="historyList"></div>
-        <button class="secondary-btn" onclick="show('screen-start')">Назад</button>
     </section>
 </main>
 
