@@ -1,10 +1,10 @@
 {
-  "name": "CheckRide V4 PRO",
+  "name": "CheckRide V5 Enterprise",
   "short_name": "CheckRide",
   "display": "standalone",
   "start_url": "./index.html",
   "background_color": "#ffffff",
-  "theme_color": "#007aff",
+  "theme_color": "#1e88e5",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/1004/1004517.png",
