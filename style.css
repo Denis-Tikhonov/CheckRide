@@ -3,56 +3,37 @@
     --black: rgb(0, 0, 0);
     --light-grey: rgb(188, 189, 188);
     --dark-grey: rgb(116, 118, 120);
-    --dark-red: rgb(170, 39, 47);
     --white: rgb(255, 255, 255);
 }
 
-body { font-family: Arial, sans-serif; background: var(--light-grey); margin: 0; padding: 0; color: var(--black); }
-header { background: var(--red); color: var(--white); text-align: center; padding: 15px; }
-main { padding: 15px; }
-
-.screen { 
-    background: var(--white); max-width: 600px; margin: auto; 
-    padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-}
-
+body { font-family: sans-serif; background: var(--light-grey); margin: 0; }
+header { background: var(--red); color: white; text-align: center; padding: 10px; }
+.screen { background: white; max-width: 600px; margin: 20px auto; padding: 20px; border-radius: 8px; }
 .hidden { display: none !important; }
 
-/* Поля ввода */
-input[type="text"], textarea {
-    width: 100%; padding: 12px; margin: 10px 0;
-    border: 1px solid var(--dark-grey); border-radius: 4px; box-sizing: border-box;
-}
+/* Кнопки и формы */
+input, textarea { width: 100%; margin: 10px 0; padding: 10px; box-sizing: border-box; }
+.mode-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+.mode-btn { flex: 1; padding: 10px; cursor: pointer; border: 1px solid var(--dark-grey); }
+.mode-btn.active { background: var(--red); color: white; }
+.main-btn { background: var(--red); color: white; width: 100%; padding: 15px; border: none; cursor: pointer; }
 
-/* Кнопки режима */
-.mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
-.mode-btn { 
-    flex: 1; padding: 12px; border: 2px solid var(--dark-grey); 
-    background: var(--white); font-weight: bold; cursor: pointer;
-}
-.mode-btn.active { background: var(--red); color: var(--white); border-color: var(--dark-red); }
+/* Чекбокс слева в одну строку */
+.checkbox-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-weight: bold; }
+.checkbox-row input { width: 20px; height: 20px; margin: 0; }
 
-/* Кнопки действий */
-button { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-.main-btn { background: var(--red); color: var(--white); width: 100%; padding: 15px; font-size: 16px; }
-.secondary-btn { background: var(--dark-grey); color: var(--white); width: 100%; padding: 12px; margin-top: 10px; }
-.finish-btn { background: var(--dark-red); color: var(--white); padding: 12px 20px; }
-.nav-btn { background: var(--black); color: var(--white); padding: 12px 20px; flex: 1; }
+/* Навигация */
+.navigation-controls { display: flex; justify-content: space-between; margin-top: 20px; }
+.navigation-controls button { padding: 10px 20px; cursor: pointer; }
 
-/* Чекбокс и текст OK в одну строку */
-.checkbox-container {
-    display: flex; align-items: center; justify-content: flex-start;
-    gap: 10px; margin: 10px 0; cursor: pointer; font-weight: bold;
-}
-.checkbox-container input { width: 22px; height: 22px; margin: 0; }
+/* Стили отчета для PDF */
+.report-paper { color: var(--black); }
+.report-title { color: var(--red); border-bottom: 2px solid var(--red); }
+.rep-sec-title { background: #eee; padding: 5px; margin-top: 20px; }
+.rep-row { border-bottom: 1px solid var(--light-grey); padding: 10px 0; }
+.flex-row { display: flex; align-items: center; gap: 10px; }
+.box { border: 1px solid black; width: 16px; height: 16px; display: inline-block; text-align: center; line-height: 16px; }
+.rep-img { max-width: 200px; display: block; margin-top: 10px; }
+canvas { border: 1px solid black; background: #fff; display: block; }
 
-/* Пункты теста */
-.item-card { border-bottom: 2px solid var(--light-grey); padding: 15px 0; }
-.navigation-controls { display: flex; gap: 10px; margin-top: 20px; justify-content: space-between; }
-
-/* Подпись */
-canvas { border: 1px solid var(--black); background: #fff; width: 100%; touch-action: none; margin-top: 10px; }
-
-/* Отчет */
-.report-row { margin-bottom: 15px; border-bottom: 1px solid var(--light-grey); padding-bottom: 10px; }
-.report-img { max-width: 250px; display: block; margin-top: 10px; }
+@media print { .no-print { display: none; } }
