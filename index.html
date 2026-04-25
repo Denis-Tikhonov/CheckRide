@@ -11,14 +11,12 @@
 
 <header class="no-print">
     <div class="header-container">
-        <!-- Файл должен называться logo.png и лежать в папке с index.html -->
-        <img src="logo.svg" alt="Logo" class="logo" onerror="this.style.display='none'">
+        <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
         <h1>CheckRide Enterprise</h1>
     </div>
 </header>
 
 <main>
-    <!-- ЭКРАН 1: СТАРТ -->
     <section id="screen-start" class="screen">
         <h2>Регистрация</h2>
         <div class="mode-selector">
@@ -32,19 +30,12 @@
         <button class="secondary-btn" onclick="showHistory()">История проверок</button>
     </section>
 
-    <!-- ЭКРАН 2: ТЕСТ -->
     <section id="screen-test" class="screen hidden">
         <h2 id="section-title"></h2>
-        
-        <!-- Блок только для чекбоксов -->
         <div id="checklist-items"></div>
-        
         <hr class="separator">
         <h3 class="sub-title">Комментарии и фото к блоку</h3>
-        
-        <!-- Блок для комментариев и фото (внизу) -->
         <div id="checklist-details"></div>
-
         <div class="navigation-controls">
             <button id="btn-prev" class="nav-button" onclick="prevSection()">← Назад</button>
             <button id="btn-next" class="nav-button" onclick="nextSection()">Далее →</button>
@@ -52,7 +43,6 @@
         </div>
     </section>
 
-    <!-- ЭКРАН 3: ОТЧЕТ -->
     <section id="screen-report" class="screen hidden">
         <div id="report-content">
             <h2 class="report-main-title">ОТЧЕТ ПО ПРОВЕРКЕ</h2>
@@ -62,9 +52,7 @@
                 <p><b>Дата:</b> <span id="r_date"></span></p>
                 <p><b>Режим:</b> <span id="r_mode"></span></p>
             </div>
-            
             <div id="report-data"></div>
-            
             <div class="signature-section">
                 <p><b>Проверяющий:</b> <span id="r_instructor"></span></p>
                 <p><b>Подпись:</b></p>
@@ -72,18 +60,16 @@
                 <div id="sig-image-placeholder"></div>
             </div>
         </div>
-        
         <div class="no-print">
             <button class="main-btn" onclick="exportPDF()">Скачать PDF</button>
             <button class="secondary-btn" onclick="resetApp()">На главную</button>
         </div>
     </section>
 
-    <!-- ЭКРАН 4: ИСТОРИЯ -->
     <section id="screen-history" class="screen hidden">
-        <h2>История</h2>
+        <h2>История проверок</h2>
         <div id="historyList"></div>
-        <button class="secondary-btn clear-btn" onclick="clearHistory()">Очистить всё</button>
+        <button class="secondary-btn clear-btn" onclick="clearHistory()" style="background:var(--red) !important;">Очистить историю</button>
         <button class="secondary-btn" onclick="show('screen-start')">Назад</button>
     </section>
 </main>
