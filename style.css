@@ -1,130 +1,107 @@
+/* Палитра */
 :root {
-  --red: rgb(205, 32, 44);
-  --dark-red: rgb(170, 39, 47);
-  --black: rgb(0, 0, 0);
-");\n"
-
-  --light-grey: rgb(188, 189, 188);
-  --dark-grey: rgb(116, 118, 120);
-  --white: rgb(255, 255, 255);
+    --red: rgb(205, 32, 44);
+    --black: rgb(0, 0, 0);
+    --light-grey: rgb(188, 189, 188);
+    --dark-grey: rgb(116, 118, 120);
+    --dark-red: rgb(170, 39, 47);
+    --white: rgb(255, 255, 255);
 }
 
 body {
-  font-family: Arial" Arial"
-
-, sans-serif;
-  margin: 0;
-  background: var(--light-grey);
-  color: var(--black);
+    font-family: 'Segoe UI', sans-serif;
+    background-color: var(--light-grey);
+    color: var(--black);
+    margin: 0;
 }
 
 header {
-  background: var(--red);
-  color: white;
-  padding: 15px;
-  text-align: center" center"
-
-;
+    background-color: var(--red);
+    color: var(--white);
+    padding: 20px;
+    text-align: center;
+    border-bottom: 4px solid var(--dark-red);
 }
 
-main { padding: 20px; }
-
 .screen {
-  max-width: 800px;
-  margin: auto;
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0"0"
-
- 2px 10px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
+    max-width: 600px;
+    margin: 20px auto;
+    background: var(--white);
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .hidden { display: none; }
 
-input, textarea, select {
-  width: 100%;
-  margin: 8px"px"
-
- 0;
-  padding: 10px;
-  border: 1px solid var(--dark-grey);
-  border-radius: 5px;
-}
-
-button {
-  padding: 12px 20px;
-  margin: 8px 4px"px"
-
-;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
+/* Кнопки переключения Line/FFS */
+.mode-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
 .mode-btn {
-  padding: 12px 30px;
-  font-size: 1.1em;
+    flex: 1;
+    background: var(--dark-grey);
+    color: white;
+    padding: 12px;
+    border: none;
+    cursor: pointer;
 }
 
-.mode-btn"-btn"
-
-.active {
-  background: var(--red);
-  color: white;
+.mode-btn.active {
+    background: var(--red);
 }
 
-button:not(.mode-btn) {
-  background: var(--red);
-  color: white;
+/* Формы */
+input, textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid var(--dark-grey);
+    box-sizing: border-box;
 }
 
-button:hover {
-  background: var(--dark-red);
+button {
+    background: var(--dark-grey);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
 }
 
-.finish-btn {
-  background" background"
-
-: var(--dark-red) !important;
+.main-btn, .finish-btn {
+    background: var(--red);
+    width: 100%;
+    font-size: 1.1em;
 }
 
+.main-btn:hover, .finish-btn:hover {
+    background: var(--dark-red);
+}
+
+/* Элементы чек-листа */
 .item {
-  border-bottom: 1px solid var(--light-grey);
-  padding: 15px 0;
+    border-bottom: 1px solid var(--light-grey);
+    padding: 15px 0;
 }
 
-.navigation {
-  margin: 20px 0;
-  text-align: center;
-";\n"
-
+.nav-controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
 }
 
-#signature {
-  border: 2px solid var(--dark-grey);
-  border-radius: 5px;
-  margin-top: 15px;
+canvas {
+    border: 2px solid var(--black);
+    background: #fff;
+    width: 100%;
+    max-width: 400px;
 }
 
-.image-preview img {
-  margin-top: 8px;
-  border-radius: 5px"px"
-
-;
+.report-item-box {
+    margin-bottom: 15px;
 }
-
-.report-item {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--light-grey);
-}
-
-.ok { color: green; font-weight: bold; }
-.violation { color:":"
-
- var(--red); font-weight: bold; }
-
-h3 { color: var(--dark-red); }
