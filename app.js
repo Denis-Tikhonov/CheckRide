@@ -1,84 +1,221 @@
-:root {
-    --red: rgb(205, 32, 44);
-    --black: rgb(0, 0, 0);
-    --light-grey: rgb(188, 189, 188);
-    --dark-grey: rgb(116, 118, 120);
-    --dark-red: rgb(170, 39, 47);
-    --white: rgb(255, 255, 255);
+let DATA = null;
+let currentMode = 'line';
+let currentSectionIndex = 0;
+
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btn-line').classList.toggle('active', mode === 'line');
+    document.getElementById('btn-ffs').classList.toggle('active', mode === 'ffs');
 }
 
-body { font-family: Arial, sans-serif; background: var(--light-grey); margin: 0; color: var(--black); }
+async function startInspection() {
+    const fio = document.getElementById("fio").value;
+    const instructor = document.getElementById("instructor").value;
+    if (!fio || !instructor) return alert("Заполните ФИО проверяемого и ФИО проверяющего");
 
-/* Шапка с логотипом */
-header { background: var(--red); color: var(--white); padding: 10px 0; }
-.header-container { 
-    max-width: 800px; margin: 0 auto; display: flex; 
-    align-items: center; justify-content: flex-start; gap: 15px; padding: 0 15px;
-}
-.logo { height: 40px; width: auto; }
-header h1 { margin: 0; font-size: 1.2rem; }
+    const file = currentMode === 'line' ? 'data.json' : 'data_ffs.json';
+    try {
+        const response = await fetch(file);
+        DATA = await response.json();
+        
+        DATA.checklists.forEach(sec => sec.items.forEach(i => {
+            i.ok = false; i.note = ""; i.img = null;
+        }));
 
-.screen { 
-    background: var(--white); max-width: 650px; margin: 15px auto; 
-    padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-}
-.hidden { display: none !important; }
-
-/* Кнопки режима */
-.mode-selector { display: flex; gap: 10px; margin-bottom: 15px; }
-.mode-btn { flex: 1; padding: 12px; border: 1px solid var(--dark-grey); background: var(--white); cursor: pointer; }
-.mode-btn.active { background: var(--red); color: var(--white); border-color: var(--red); }
-
-/* Поля ввода */
-input[type="text"], textarea { 
-    width: 100%; padding: 12px; margin: 8px 0; 
-    border: 1px solid var(--dark-grey); border-radius: 4px; box-sizing: border-box; 
+        currentSectionIndex = 0;
+        renderSection();
+        show('screen-test');
+    } catch (e) { alert("Ошибка загрузки данных. Проверьте data.json"); }
 }
 
-/* Чекбоксы: строго в одну строку слева */
-.check-item { 
-    display: flex; align-items: center; justify-content: flex-start; 
-    gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee; 
-}
-.check-item input[type="checkbox"] { 
-    width: 22px; height: 22px; flex-shrink: 0; margin: 0; cursor: pointer; 
-}
-.check-item label { cursor: pointer; font-size: 15px; line-height: 1.2; }
+function renderSection() {
+    const section = DATA.checklists[currentSectionIndex];
+    const itemsBox = document.getElementById("checklist-items");
+    const detailsBox = document.getElementById("checklist-details");
+    const titleEl = document.getElementById("section-title");
 
-/* Детали внизу */
-.separator { margin: 25px 0 15px; border: 0; border-top: 2px solid var(--light-grey); }
-.sub-title { color: var(--dark-grey); font-size: 1rem; margin-bottom: 15px; }
-.detail-item { background: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 15px; }
-.detail-item b { font-size: 12px; color: var(--dark-grey); display: block; margin-bottom: 5px; }
+    if(!itemsBox || !detailsBox || !titleEl) return;
 
-/* Кнопки навигации */
-.navigation-controls { display: flex; gap: 10px; margin-top: 20px; }
-.nav-button, .main-btn, .secondary-btn, .finish-btn { 
-    border: none; border-radius: 4px; cursor: pointer; font-weight: bold; 
+    titleEl.innerText = section.name;
+    itemsBox.innerHTML = "";
+    detailsBox.innerHTML = "";
+
+    section.items.forEach(item => {
+        // 1. Чекбоксы (верхняя часть)
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "check-item";
+        itemDiv.innerHTML = `<input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}><label for="c_${item.id}">${item.label}</label>`;
+        itemsBox.appendChild(itemDiv);
+
+        // 2. Детали (нижняя часть)
+        const detailDiv = document.createElement("div");
+        detailDiv.className = "detail-item";
+        detailDiv.innerHTML = `
+            <b>К пункту: ${item.label}</b>
+            <textarea id="n_${item.id}" placeholder="Ваш комментарий...">${item.note}</textarea>
+            <input type="file" accept="image/*" onchange="handleFile(this, '${item.id}')">
+            <div id="p_${item.id}">${item.img ? `<img src="${item.img}" width="70" style="margin-top:5px;">` : ''}</div>
+        `;
+        detailsBox.appendChild(detailDiv);
+    });
+    updateNav();
 }
-.main-btn { background: var(--red); color: var(--white); width: 100%; padding: 15px; font-size: 16px; }
-.secondary-btn { background: var(--dark-grey); color: var(--white); width: 100%; padding: 12px; }
-.nav-button { flex: 1; background: var(--black); color: var(--white); padding: 15px; }
-.finish-btn { flex: 1; background: var(--dark-red); color: var(--white); padding: 15px; }
-.clear-btn { background: var(--red) !important; margin-bottom: 5px; }
 
-/* История */
-.history-card { 
-    border: 1px solid var(--light-grey); padding: 15px; margin-bottom: 10px; 
-    border-radius: 6px; cursor: pointer; text-align: left; 
+async function handleFile(input, id) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const b64 = e.target.result;
+            DATA.checklists.forEach(s => s.items.forEach(i => { if(i.id === id) i.img = b64; }));
+            document.getElementById(`p_${id}`).innerHTML = `<img src="${b64}" width="70" style="margin-top:5px;">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
 }
-.history-card:hover { background: #f0f0f0; }
 
-/* Отчет */
-.report-main-title { color: var(--red); border-bottom: 2px solid var(--red); padding-bottom: 10px; }
-.report-meta { margin-bottom: 20px; font-size: 14px; }
-.flex-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
-.box { border: 1px solid #000; width: 16px; height: 16px; text-align: center; line-height: 16px; font-size: 12px; font-weight: bold; }
-.signature-section { margin-top: 30px; border-top: 1px solid #000; padding-top: 10px; }
-canvas { border: 1px solid #000; background: #fff; width: 100%; height: 150px; }
-
-@media (max-width: 480px) {
-    .header-container { gap: 8px; }
-    .logo { height: 30px; }
-    header h1 { font-size: 1rem; }
+function saveState() {
+    const section = DATA.checklists[currentSectionIndex];
+    section.items.forEach(item => {
+        const cb = document.getElementById(`c_${item.id}`);
+        const nt = document.getElementById(`n_${item.id}`);
+        if(cb) item.ok = cb.checked;
+        if(nt) item.note = nt.value;
+    });
 }
+
+function nextSection() { saveState(); currentSectionIndex++; renderSection(); }
+function prevSection() { saveState(); currentSectionIndex--; renderSection(); }
+
+function updateNav() {
+    const isFirst = currentSectionIndex === 0;
+    const isLast = currentSectionIndex === DATA.checklists.length - 1;
+    document.getElementById("btn-prev").style.display = isFirst ? "none" : "block";
+    document.getElementById("btn-next").style.display = isLast ? "none" : "block";
+    document.getElementById("btn-finish").classList.toggle("hidden", !isLast);
+}
+
+function finishInspection() {
+    saveState();
+    buildReport();
+    saveToHistory();
+    show("screen-report");
+    initSignature();
+}
+
+function buildReport() {
+    const container = document.getElementById("report-data");
+    container.innerHTML = "";
+    DATA.checklists.forEach(section => {
+        const sDiv = document.createElement("div");
+        sDiv.innerHTML = `<h3 style="color:var(--red); border-bottom:1px solid #eee; margin-top:20px;">${section.name}</h3>`;
+        section.items.forEach(item => {
+            sDiv.innerHTML += `
+                <div style="margin-bottom:10px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
+                    <p style="margin:5px 0;"><b>${item.label}</b></p>
+                    <div class="flex-row"><div class="box">${item.ok ? 'X' : ''}</div><span style="font-size:14px;">Статус: ${item.ok ? 'OK' : 'Нарушение'}</span></div>
+                    <p style="font-size:13px; margin:5px 0;">Коммент: ${item.note || '-'}</p>
+                    ${item.img ? `<img src="${item.img}" style="max-width:200px; display:block; margin:5px 0;">` : ''}
+                </div>`;
+        });
+        container.appendChild(sDiv);
+    });
+    document.getElementById("r_fio").innerText = document.getElementById("fio").value;
+    document.getElementById("r_license").innerText = document.getElementById("license").value;
+    document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
+    document.getElementById("r_date").innerText = DATA.savedDate || new Date().toLocaleString();
+    document.getElementById("r_mode").innerText = currentMode.toUpperCase();
+}
+
+function saveToHistory() {
+    const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
+    const canvas = document.getElementById("signature");
+    const entry = {
+        fio: document.getElementById("fio").value,
+        license: document.getElementById("license").value,
+        instructor: document.getElementById("instructor").value,
+        date: new Date().toLocaleString(),
+        mode: currentMode,
+        fullData: JSON.parse(JSON.stringify(DATA)),
+        signature: canvas ? canvas.toDataURL() : null
+    };
+    history.unshift(entry);
+    localStorage.setItem("checkride_history_v5", JSON.stringify(history.slice(0, 20)));
+}
+
+function showHistory() {
+    const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
+    const box = document.getElementById("historyList");
+    box.innerHTML = history.length ? history.map((h, i) => `
+        <div class="history-card" onclick="viewSavedReport(${i})">
+            <b>${h.fio}</b> <small>(${h.mode.toUpperCase()})</small><br>
+            <small>${h.date} | Инстр: ${h.instructor}</small>
+        </div>
+    `).join("") : "История пуста";
+    show("screen-history");
+}
+
+function viewSavedReport(index) {
+    const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
+    const saved = history[index];
+    document.getElementById("fio").value = saved.fio;
+    document.getElementById("license").value = saved.license;
+    document.getElementById("instructor").value = saved.instructor;
+    currentMode = saved.mode;
+    DATA = saved.fullData;
+    DATA.savedDate = saved.date;
+    buildReport();
+    const placeholder = document.getElementById("sig-image-placeholder");
+    const canvas = document.getElementById("signature");
+    placeholder.innerHTML = `<img src="${saved.signature}" style="width:250px; border-bottom:1px solid #000;">`;
+    canvas.style.display = "none";
+    show("screen-report");
+}
+
+function clearHistory() {
+    if(confirm("Очистить всю историю?")) {
+        localStorage.removeItem("checkride_history_v5");
+        showHistory();
+    }
+}
+
+function exportPDF() {
+    const canvas = document.getElementById("signature");
+    const placeholder = document.getElementById("sig-image-placeholder");
+    if (canvas.style.display !== "none") {
+        placeholder.innerHTML = `<img src="${canvas.toDataURL()}" style="width:250px; border-bottom:1px solid #000;">`;
+        canvas.style.display = "none";
+    }
+    const element = document.getElementById("report-content");
+    html2pdf().set({
+        margin: 10, filename: 'Report.pdf',
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(element).save();
+}
+
+function initSignature() {
+    const canvas = document.getElementById("signature");
+    const ctx = canvas.getContext("2d");
+    const placeholder = document.getElementById("sig-image-placeholder");
+    canvas.style.display = "block"; placeholder.innerHTML = "";
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    let drawing = false;
+    const getPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        return { x: cx, y: cy };
+    };
+    canvas.onmousedown = canvas.ontouchstart = (e) => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
+    canvas.onmousemove = canvas.ontouchmove = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    canvas.onmouseup = canvas.ontouchend = () => drawing = false;
+    ctx.lineWidth = 2; ctx.strokeStyle = "#000";
+}
+
+function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+    window.scrollTo(0,0);
+}
+
+function resetApp() { location.reload(); }
