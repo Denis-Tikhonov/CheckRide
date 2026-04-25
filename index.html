@@ -11,14 +11,14 @@
 
 <header class="no-print">
     <div class="header-container">
-        <!-- Логотип (убедитесь, что файл logo.png лежит в папке) -->
+        <!-- Файл должен называться logo.png и лежать в папке с index.html -->
         <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
         <h1>CheckRide Enterprise</h1>
     </div>
 </header>
 
 <main>
-    <!-- ЭКРАН 1: РЕГИСТРАЦИЯ -->
+    <!-- ЭКРАН 1: СТАРТ -->
     <section id="screen-start" class="screen">
         <h2>Регистрация</h2>
         <div class="mode-selector">
@@ -27,21 +27,23 @@
         </div>
         <input type="text" id="fio" placeholder="ФИО проверяемого">
         <input type="text" id="license" placeholder="Номер лицензии">
-        <input type="text" id="instructor" placeholder="Проверяющий">
+        <input type="text" id="instructor" placeholder="Проверяющий (Инструктор)">
         <button class="main-btn" onclick="startInspection()">Начать проверку</button>
-        <button class="secondary-btn" onclick="showHistory()">История</button>
+        <button class="secondary-btn" onclick="showHistory()">История проверок</button>
     </section>
 
-    <!-- ЭКРАН 2: ПРОЦЕСС ТЕСТА -->
+    <!-- ЭКРАН 2: ТЕСТ -->
     <section id="screen-test" class="screen hidden">
-        <h2 id="section-title"></h2> <!-- Сюда JS пишет Preflight / Takeoff -->
+        <h2 id="section-title"></h2>
         
-        <div id="checklist-items"></div> <!-- Сюда JS пишет чекбоксы -->
+        <!-- Блок только для чекбоксов -->
+        <div id="checklist-items"></div>
         
-        <hr style="margin: 20px 0; border: 1px solid #ddd;">
-        <h3 style="color: #747678;">Комментарии и фото</h3>
+        <hr class="separator">
+        <h3 class="sub-title">Комментарии и фото к блоку</h3>
         
-        <div id="checklist-details"></div> <!-- Сюда JS пишет поля комментариев -->
+        <!-- Блок для комментариев и фото (внизу) -->
+        <div id="checklist-details"></div>
 
         <div class="navigation-controls">
             <button id="btn-prev" class="nav-button" onclick="prevSection()">← Назад</button>
@@ -50,23 +52,23 @@
         </div>
     </section>
 
-    <!-- ЭКРАН 3: ИТОГОВЫЙ ОТЧЕТ -->
+    <!-- ЭКРАН 3: ОТЧЕТ -->
     <section id="screen-report" class="screen hidden">
         <div id="report-content">
-            <h2 style="color:rgb(205, 32, 44);">ОТЧЕТ ПО ПРОВЕРКЕ</h2>
-            <div class="meta">
+            <h2 class="report-main-title">ОТЧЕТ ПО ПРОВЕРКЕ</h2>
+            <div class="report-meta">
                 <p><b>Проверяемый:</b> <span id="r_fio"></span></p>
                 <p><b>Лицензия:</b> <span id="r_license"></span></p>
                 <p><b>Дата:</b> <span id="r_date"></span></p>
                 <p><b>Режим:</b> <span id="r_mode"></span></p>
             </div>
             
-            <div id="report-data"></div> <!-- Сюда JS пишет все итоги -->
+            <div id="report-data"></div>
             
-            <div style="margin-top:20px; border-top: 1px solid #000; padding-top: 10px;">
+            <div class="signature-section">
                 <p><b>Проверяющий:</b> <span id="r_instructor"></span></p>
                 <p><b>Подпись:</b></p>
-                <canvas id="signature" width="400" height="150" style="border:1px solid #000; width:100%; height: 150px;"></canvas>
+                <canvas id="signature" width="400" height="150"></canvas>
                 <div id="sig-image-placeholder"></div>
             </div>
         </div>
@@ -79,9 +81,9 @@
 
     <!-- ЭКРАН 4: ИСТОРИЯ -->
     <section id="screen-history" class="screen hidden">
-        <h2>История проверок</h2>
+        <h2>История</h2>
         <div id="historyList"></div>
-        <button class="secondary-btn" style="background: rgb(205, 32, 44);" onclick="clearHistory()">Очистить историю</button>
+        <button class="secondary-btn clear-btn" onclick="clearHistory()">Очистить всё</button>
         <button class="secondary-btn" onclick="show('screen-start')">Назад</button>
     </section>
 </main>
