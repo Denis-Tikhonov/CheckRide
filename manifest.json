@@ -1,15 +1,17 @@
 {
   "name": "CheckRide V5 Enterprise",
   "short_name": "CheckRide",
-  "display": "standalone",
+  "description": "Профессиональный инструмент проверки ВС",
   "start_url": "./index.html",
+  "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1e88e5",
+  "theme_color": "#cd202c",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/1004/1004517.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
