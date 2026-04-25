@@ -8,28 +8,24 @@ const DATA_FILES = {
     ffs: 'data_ffs.json'
 };
 
-// 1. Установка режима (Line/FFS)
 function setMode(mode) {
     currentMode = mode;
     document.getElementById('btn-line').classList.toggle('active', mode === 'line');
     document.getElementById('btn-ffs').classList.toggle('active', mode === 'ffs');
 }
 
-// 2. Запуск проверки
 async function startInspection() {
-    const fio = document.getElementById("fio").value;
-    if (!fio) return alert("Пожалуйста, введите ФИО");
-
+    if (!document.getElementById("fio").value) return alert("Введите ФИО");
     try {
         const response = await fetch(DATA_FILES[currentMode]);
         DATA = await response.json();
         
-        // Инициализируем структуру для хранения ответов
-        DATA.checklists.forEach(section => {
-            section.items.forEach(item => {
-                item.answer_ok = false;
-                item.answer_note = "";
-                item.answer_img = null;
+        // Подготовка данных для хранения ответов
+        DATA.checklists.forEach(sec => {
+            sec.items.forEach(i => {
+                if(i.answer_ok === undefined) i.answer_ok = false;
+                if(i.answer_note === undefined) i.answer_note = "";
+                if(i.answer_img === undefined) i.answer_img = null;
             });
         });
 
@@ -37,15 +33,13 @@ async function startInspection() {
         renderSection();
         show('screen-test');
     } catch (e) {
-        alert("Ошибка загрузки данных. Проверьте наличие data.json и data_ffs.json");
+        alert("Ошибка: Убедитесь, что файлы data.json и data_ffs.json находятся на сервере.");
     }
 }
 
-// 3. Отрисовка текущего блока (Preflight / Takeoff и т.д.)
 function renderSection() {
     const section = DATA.checklists[currentSectionIndex];
     document.getElementById("section-title").innerText = section.name;
-    
     const container = document.getElementById("checklist");
     container.innerHTML = "";
 
@@ -53,59 +47,46 @@ function renderSection() {
         const div = document.createElement("div");
         div.className = "item-card";
         div.innerHTML = `
-            <p class="item-label">${item.label}</p>
-            <div class="item-inputs">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="c_${item.id}" ${item.answer_ok ? 'checked' : ''}> OK
-                </label>
-                <textarea id="n_${item.id}" placeholder="Комментарий">${item.answer_note}</textarea>
-                <input type="file" accept="image/*" id="f_${item.id}" class="file-input">
-                <div id="p_${item.id}" class="img-preview">
-                    ${item.answer_img ? `<img src="${item.answer_img}">` : ''}
-                </div>
+            <p><b>${item.label}</b></p>
+            <div class="checkbox-container">
+                <input type="checkbox" id="c_${item.id}" ${item.answer_ok ? 'checked' : ''}>
+                <span>OK</span>
+            </div>
+            <textarea id="n_${item.id}" placeholder="Комментарий">${item.answer_note}</textarea>
+            <input type="file" accept="image/*" id="f_${item.id}">
+            <div id="p_${item.id}" class="img-preview">
+                ${item.answer_img ? `<img src="${item.answer_img}" style="max-width:150px; margin-top:10px;">` : ''}
             </div>
         `;
         container.appendChild(div);
 
-        // Обработка фото (сразу в Base64 для сохранения состояния)
+        // Обработка фото сразу в Base64
         const fileInput = div.querySelector(`#f_${item.id}`);
-        fileInput.addEventListener('change', async (e) => {
-            if (e.target.files[0]) {
-                const base64 = await toBase64(e.target.files[0]);
-                item.answer_img = base64;
-                div.querySelector(`#p_${item.id}`).innerHTML = `<img src="${base64}">`;
+        fileInput.onchange = async () => {
+            if (fileInput.files[0]) {
+                const b64 = await toBase64(fileInput.files[0]);
+                item.answer_img = b64;
+                div.querySelector(`#p_${item.id}`).innerHTML = `<img src="${b64}" style="max-width:150px; margin-top:10px;">`;
             }
-        });
+        };
     });
 
-    updateNavigationButtons();
+    updateNav();
 }
 
-// 4. Навигация между блоками
-function updateNavigationButtons() {
+function updateNav() {
     const isFirst = currentSectionIndex === 0;
     const isLast = currentSectionIndex === DATA.checklists.length - 1;
-
     document.getElementById("btn-prev").classList.toggle("hidden", isFirst);
     document.getElementById("btn-next").classList.toggle("hidden", isLast);
     document.getElementById("btn-finish").classList.toggle("hidden", !isLast);
-    
     window.scrollTo(0,0);
 }
 
-function nextSection() {
-    saveCurrentAnswers();
-    currentSectionIndex++;
-    renderSection();
-}
+function nextSection() { saveStep(); currentSectionIndex++; renderSection(); }
+function prevSection() { saveStep(); currentSectionIndex--; renderSection(); }
 
-function prevSection() {
-    saveCurrentAnswers();
-    currentSectionIndex--;
-    renderSection();
-}
-
-function saveCurrentAnswers() {
+function saveStep() {
     const section = DATA.checklists[currentSectionIndex];
     section.items.forEach(item => {
         item.answer_ok = document.getElementById(`c_${item.id}`).checked;
@@ -113,114 +94,82 @@ function saveCurrentAnswers() {
     });
 }
 
-// 5. Завершение и формирование отчета
-async function finishInspection() {
-    saveCurrentAnswers();
-    
+function finishInspection() {
+    saveStep();
     const container = document.getElementById("report_items_container");
     container.innerHTML = "";
 
     DATA.checklists.forEach(section => {
-        const secDiv = document.createElement("div");
-        secDiv.className = "report-section";
-        secDiv.innerHTML = `<h3>${section.name}</h3>`;
-
+        const sDiv = document.createElement("div");
+        sDiv.innerHTML = `<h3 style="color:var(--red); margin-top:20px; border-bottom:1px solid var(--red);">${section.name}</h3>`;
+        
         section.items.forEach(item => {
-            const itemDiv = document.createElement("div");
-            itemDiv.className = "report-row";
-            itemDiv.innerHTML = `
+            const iDiv = document.createElement("div");
+            iDiv.className = "report-row";
+            iDiv.innerHTML = `
                 <p><b>${item.label}</b></p>
-                <p>Статус: ${item.answer_ok ? "✅ OK" : "❌ Нарушение"}</p>
-                <p>Комментарий: ${item.answer_note || "-"}</p>
-                ${item.answer_img ? `<img src="${item.answer_img}" class="report-img">` : ""}
-                <hr>
+                <p style="display:flex; align-items:center; gap:8px;">
+                    <span style="border:1px solid #000; width:15px; height:15px; display:inline-block; text-align:center; line-height:15px;">${item.answer_ok ? 'X' : ''}</span>
+                    Статус: ${item.answer_ok ? 'OK' : 'Нарушение'}
+                </p>
+                <p>Комментарий: ${item.answer_note || '-'}</p>
+                ${item.answer_img ? `<img src="${item.answer_img}" class="report-img">` : ''}
             `;
-            secDiv.appendChild(itemDiv);
+            sDiv.appendChild(iDiv);
         });
-        container.appendChild(secDiv);
+        container.appendChild(sDiv);
     });
 
-    // Мета данные
     document.getElementById("r_fio").innerText = document.getElementById("fio").value;
     document.getElementById("r_license").innerText = document.getElementById("license").value;
     document.getElementById("r_date").innerText = new Date().toLocaleString();
     document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 
-    saveToHistory();
     show("screen-report");
-    setTimeout(initSignature, 100); // Небольшая задержка для прорисовки canvas
+    setTimeout(initSignature, 200);
 }
 
-// 6. Подпись (Canvas)
 function initSignature() {
     const canvas = document.getElementById("signature");
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0,0,canvas.width, canvas.height);
     let drawing = false;
-
     const getPos = (e) => {
         const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: cx - rect.left, y: cy - rect.top };
     };
-
-    const start = (e) => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
-    const draw = (e) => { 
-        if (!drawing) return; 
-        e.preventDefault(); 
-        const p = getPos(e); 
-        ctx.lineTo(p.x, p.y); 
-        ctx.stroke(); 
-    };
-    const stop = () => drawing = false;
-
-    canvas.onmousedown = start; canvas.onmousemove = draw; canvas.onmouseup = stop;
-    canvas.ontouchstart = start; canvas.ontouchmove = draw; canvas.ontouchend = stop;
-    ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#000";
+    canvas.onmousedown = canvas.ontouchstart = (e) => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    canvas.onmousemove = canvas.ontouchmove = (e) => { if(!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    canvas.onmouseup = canvas.ontouchend = () => { drawing = false; };
+    ctx.lineWidth = 2; ctx.strokeStyle = "#000";
 }
 
-// 7. Экспорт PDF
 function exportPDF() {
+    const canvas = document.getElementById("signature");
+    const placeholder = document.getElementById("signature-img-placeholder");
+    const dataURL = canvas.toDataURL("image/png");
+    
+    placeholder.innerHTML = `<img src="${dataURL}" style="width:300px; border-bottom:1px solid #000;">`;
+    canvas.style.display = "none";
+
     const element = document.getElementById("report-to-export");
     const opt = {
         margin: 10,
-        filename: `Report_${currentMode.toUpperCase()}_${new Date().getTime()}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        filename: 'Report.pdf',
+        html2canvas: { scale: 2 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    html2pdf().set(opt).from(element).save();
-}
 
-// 8. Утилиты и LocalStorage
-function saveToHistory() {
-    const record = {
-        fio: document.getElementById("fio").value,
-        mode: currentMode.toUpperCase(),
-        date: new Date().toLocaleString()
-    };
-    inspections.unshift(record);
-    localStorage.setItem("inspections", JSON.stringify(inspections.slice(0, 20)));
-}
-
-function showHistory() {
-    const list = document.getElementById("historyList");
-    list.innerHTML = inspections.map(i => `
-        <div class="history-item">
-            <b>${i.fio}</b> [${i.mode}]<br><small>${i.date}</small>
-        </div>
-    `).join("");
-    show("screen-history");
+    html2pdf().set(opt).from(element).save().then(() => {
+        canvas.style.display = "block";
+        placeholder.innerHTML = "";
+    });
 }
 
 function toBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
+    return new Promise(r => { const rd = new FileReader(); rd.readAsDataURL(file); rd.onload = () => r(rd.result); });
 }
 
 function show(id) {
@@ -228,11 +177,10 @@ function show(id) {
     document.getElementById(id).classList.remove('hidden');
 }
 
-function resetApp() {
-    if (confirm("Начать новую проверку? Текущие данные будут сброшены.")) location.reload();
-}
+function resetApp() { location.reload(); }
 
-// Service Worker (PWA)
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+function showHistory() {
+    const box = document.getElementById("historyList");
+    box.innerHTML = inspections.map(i => `<div style="border-bottom:1px solid #ccc; padding:5px;"><b>${i.fio}</b> - ${i.date}</div>`).join("");
+    show("screen-history");
 }
