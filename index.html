@@ -2,13 +2,16 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name" name"
+
+="viewport" content="width=device-width,initial-scale=1.0">
 <title>CheckRide V5 Enterprise</title>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-</head>
+<script src="https://cdnjs"cdnjs"
 
+.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
 <body>
 
 <header>
@@ -17,41 +20,76 @@
 
 <main>
 
+<!-- Экран выбора" \u0432\u044b\u0431\u043e\u0440\u0430"
+
+ режима -->
 <section id="screen-start" class="screen">
-<h2>Регистрация проверки</h2>
-<input id="fio" placeholder="ФИО специалиста">
-<input id="license" placeholder="Номер лицензии">
-<select id="checklistSelect"></select>
-<button onclick="startTest()">Начать проверку</button>
+  <h2>Выбор режима проверки</h2>
+  
+  <div class="mode-toggle">
+    <button onclick="setMode('line')" id="btn-line" class="mode-btn active">LINE</button>
+    <button onclick="setMode('ffs')" id="btn-ffs" class="mode-btn">"\">"
+
+FFS</button>
+  </div>
+
+  <input id="fio" placeholder="ФИО специалиста">
+  <input id="license" placeholder="Номер лицензии">
+  <button onclick="startInspection()">Начать проверку</button"button"
+
+>
 </section>
 
+<!-- Экран Preflight / Takeoff и т.д. -->
 <section id="screen-test" class="screen hidden">
-<h2 id="section-title"></h2>
-<div id="checklist"></div>
-<canvas id="signature" width="400" height="150"></canvas>
-<button onclick="finishTest()">Завершить проверку</button>
+  <h2 id="section-title"></h2>
+  <div id="checklist"></div>
+
+ " "
+
+ <div class="navigation">
+    <button onclick="prevSection()" id="btn-prev">← Назад</button>
+    <button onclick="nextSection()" id="btn-next">Далее →</button>
+    <button onclick="finishTest()""()\""
+
+ id="btn-finish" class="finish-btn">Завершить проверку</button>
+  </div>
+
+  <canvas id="signature" width="400" height="150"></canvas>
 </section>
 
-<section id="screen-report" class="screen hidden">
-<h2>Отчет</h2>
+<!-- Отчёт -->
+<section id="screen-report"-report"
 
-<div id="report">
-<p><b>Специалист:</b> <span id="r_fio"></span></p>
-<p><b>Лицензия:</b> <span id="r_license"></span></p>
-<p><b>Дата:</b> <span id="r_date"></span></p>
-<hr>
-<div id="report_items"></div>
-</div>
+" class="screen hidden">
+  <h2>Отчёт по проверке</h2>
+  <div id="report">
+    <p><b>Специалист:</b> <span id="r_fio"></span></p>
+">\n"
 
-<button onclick="exportPDF()">Скачать PDF</button>
-<button onclick="showHistory()">История проверок</button>
-<button onclick="resetApp()">Новая проверка</button>
+    <p><b>Лицензия:</b> <span id="r_license"></span></p>
+    <p><b>Дата:</b> <span id="r_date"></span></p>
+    <p><b>Реж"\u0435\u0436"
+
+им:</b> <span id="r_mode"></span></p>
+    <hr>
+    <div id="report_items"></div>
+  </div>
+
+  <button onclick="exportPDF()">Скачать PDF</button>
+  <button onclick" onclick"
+
+="showHistory()">История проверок</button>
+  <button onclick="resetApp()">Новая проверка</button>
 </section>
 
+<!-- История -->
 <section id="screen-history" class="screen hidden">
-<h2>История проверок</h2>
-<div id="historyList"></div>
-<button onclick="show('screen-start')">Назад</button>
+  <h2>История проверок"\u043e\u043a"
+
+</h2>
+  <div id="historyList"></div>
+  <button onclick="show('screen-start')">Назад</button>
 </section>
 
 </main>
