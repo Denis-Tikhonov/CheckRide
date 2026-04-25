@@ -83,3 +83,39 @@ canvas { border: 1px solid #000; background: #fff; width: 100%; height: 150px; }
 }
 
 @media (max-width: 480px) { .logo { height: 30px; } header h1 { font-size: 1rem; } }
+
+/* Настройки для печати */
+@media print {
+    /* Скрываем всё, кроме контента отчета */
+    body * {
+        visibility: hidden;
+    }
+    #report-content, #report-content * {
+        visibility: visible;
+    }
+    #report-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    /* Скрываем кнопки внутри самого отчета, если они там есть */
+    .no-print {
+        display: none !important;
+    }
+    /* Настройки страницы */
+    @page {
+        size: A4;
+        margin: 10mm;
+    }
+    /* Чтобы изображения не разрывались на две страницы */
+    img, .report-item-row {
+        page-break-inside: avoid;
+    }
+    h2, h3 {
+        page-break-after: avoid;
+    }
+}
