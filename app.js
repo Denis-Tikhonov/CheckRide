@@ -135,28 +135,86 @@ function finishInspection() {
 
 function buildReport() {
     const container = document.getElementById("report-data");
+    if (!container) return;
+    
     container.innerHTML = "";
-    DATA.checklists.forEach(section => {
-        const sDiv = document.createElement("div");
-        sDiv.innerHTML = `<h3 style="color:var(--red); border-bottom:1px solid #eee; margin-top:20px;">${section.name}</h3>`;
-        section.items.forEach(item => {
-            sDiv.innerHTML += `
-                <div style="margin-bottom:10px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
-                    <p style="margin:5px 0;"><b>${item.label}</b></p>
-                    <div class="flex-row"><div class="box">${item.ok ? 'X' : ''}</div><span style="font-size:14px;">Статус: ${item.ok ? 'OK' : 'Нарушение'}</span></div>
-                    <p style="font-size:13px; margin:5px 0;">Коммент: ${item.note || '-'}</p>
-                    ${item.img ? `<img src="${item.img}" style="max-width:200px; display:block; margin:5px 0;">` : ''}
-                </div>`;
-        });
-        container.appendChild(sDiv);
-    });
-    document.getElementById("r_fio").innerText = document.getElementById("fio").value;
-    document.getElementById("r_license").innerText = document.getElementById("license").value;
-    document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
-    document.getElementById("r_date").innerText = DATA.savedDate || new Date().toLocaleString();
-    document.getElementById("r_mode").innerText = currentMode.toUpperCase();
-}
 
+    // 1. Проходим по всем главным экранам (Preflight, Takeoff и т.д.)
+    DATA.checklists.forEach(mainSec => {
+        const mainTitle = document.createElement("h2");
+        mainTitle.style.color = "var(--red)";
+        mainTitle.style.marginTop = "25px";
+        mainTitle.style.borderBottom = "2px solid var(--red)";
+        mainTitle.style.paddingBottom = "5px";
+        mainTitle.innerText = mainSec.name;
+        container.appendChild(mainTitle);
+
+        // 2. Проходим по подразделам (Стандартные процедуры, Компетенции и т.д.)
+        mainSec.sections.forEach(sec => {
+            if (sec.items.length > 0) { // Показываем заголовок, только если в секции есть пункты
+                const subTitle = document.createElement("h3");
+                subTitle.style.background = "#f4f4f4";
+                subTitle.style.padding = "5px 10px";
+                subTitle.style.margin = "15px 0 10px 0";
+                subTitle.style.fontSize = "16px";
+                subTitle.innerText = sec.subname;
+                container.appendChild(subTitle);
+            }
+
+            // 3. Проходим по конкретным пунктам
+            sec.items.forEach(item => {
+                const itemDiv = document.createElement("div");
+                itemDiv.style.marginBottom = "12px";
+                itemDiv.style.paddingBottom = "8px";
+                itemDiv.style.borderBottom = "1px solid #f0f0f0";
+
+                let resultHtml = "";
+                
+                // Обработка чекбоксов (как было раньше)
+                if (item.type === "checkbox") {
+                    resultHtml = `
+                        <div class="flex-row">
+                            <div class="box">${item.ok ? 'X' : ''}</div>
+                            <span style="font-size:14px; margin-left:8px;">Статус: ${item.ok ? 'OK' : 'Нарушение'}</span>
+                        </div>`;
+                } 
+                // Обработка радио-кнопок (выбранная опция)
+                else if (item.type === "radio") {
+                    resultHtml = `
+                        <div style="font-size:14px; color: var(--black); margin: 5px 0;">
+                            <b>Выбрано:</b> ${item.ok ? item.ok : '<span style="color:red;">Не выбрано</span>'}
+                        </div>`;
+                }
+
+                itemDiv.innerHTML = `
+                    <p style="margin: 5px 0; font-size: 15px;"><b>${item.label}</b></p>
+                    ${resultHtml}
+                    <p style="font-size:13px; margin:5px 0; color:#555;"><i>Комментарий:</i> ${item.note || '-'}</p>
+                    ${item.img ? `<img src="${item.img}" style="max-width:250px; display:block; margin:10px 0; border-radius:4px;">` : ''}
+                `;
+                container.appendChild(itemDiv);
+            });
+        });
+    });
+
+    // 4. Заполняем мета-данные (ФИО, Лицензия и т.д.) в шапке отчета
+    const metaMap = {
+        "r_fio": "fio",
+        "r_license": "license",
+        "r_instructor": "instructor"
+    };
+
+    for (let [reportId, inputId] of Object.entries(metaMap)) {
+        const el = document.getElementById(reportId);
+        if (el) el.innerText = document.getElementById(inputId).value;
+    }
+
+    const rDat = document.getElementById("r_date");
+    const rMod = document.getElementById("r_mode");
+
+    if (rDat) rDat.innerText = DATA.savedDate || new Date().toLocaleString();
+    if (rMod) rMod.innerText = currentMode.toUpperCase();
+}
 function saveToLocalStorage() {
     const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
     const canvas = document.getElementById("signature");
