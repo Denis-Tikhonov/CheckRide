@@ -17,15 +17,13 @@ async function startInspection() {
     try {
         const response = await fetch(file);
         DATA = await response.json();
-        
         DATA.checklists.forEach(sec => sec.items.forEach(i => {
             i.ok = false; i.note = ""; i.img = null;
         }));
-
         currentSectionIndex = 0;
         renderSection();
         show('screen-test');
-    } catch (e) { alert("Ошибка загрузки данных. Проверьте data.json"); }
+    } catch (e) { alert("Ошибка загрузки данных"); }
 }
 
 function renderSection() {
@@ -34,25 +32,21 @@ function renderSection() {
     const detailsBox = document.getElementById("checklist-details");
     const titleEl = document.getElementById("section-title");
 
-    if(!itemsBox || !detailsBox || !titleEl) return;
-
     titleEl.innerText = section.name;
     itemsBox.innerHTML = "";
     detailsBox.innerHTML = "";
 
     section.items.forEach(item => {
-        // 1. Чекбоксы (верхняя часть)
         const itemDiv = document.createElement("div");
         itemDiv.className = "check-item";
         itemDiv.innerHTML = `<input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}><label for="c_${item.id}">${item.label}</label>`;
         itemsBox.appendChild(itemDiv);
 
-        // 2. Детали (нижняя часть)
         const detailDiv = document.createElement("div");
         detailDiv.className = "detail-item";
         detailDiv.innerHTML = `
             <b>К пункту: ${item.label}</b>
-            <textarea id="n_${item.id}" placeholder="Ваш комментарий...">${item.note}</textarea>
+            <textarea id="n_${item.id}" placeholder="Комментарий...">${item.note}</textarea>
             <input type="file" accept="image/*" onchange="handleFile(this, '${item.id}')">
             <div id="p_${item.id}">${item.img ? `<img src="${item.img}" width="70" style="margin-top:5px;">` : ''}</div>
         `;
@@ -97,7 +91,7 @@ function updateNav() {
 function finishInspection() {
     saveState();
     buildReport();
-    saveToHistory();
+    saveToLocalStorage();
     show("screen-report");
     initSignature();
 }
@@ -126,7 +120,7 @@ function buildReport() {
     document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 }
 
-function saveToHistory() {
+function saveToLocalStorage() {
     const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
     const canvas = document.getElementById("signature");
     const entry = {
@@ -135,11 +129,11 @@ function saveToHistory() {
         instructor: document.getElementById("instructor").value,
         date: new Date().toLocaleString(),
         mode: currentMode,
-        fullData: JSON.parse(JSON.stringify(DATA)),
+        fullData: JSON.parse(JSON.stringify(DATA)), // Глубокое сохранение
         signature: canvas ? canvas.toDataURL() : null
     };
     history.unshift(entry);
-    localStorage.setItem("checkride_history_v5", JSON.stringify(history.slice(0, 20)));
+    localStorage.setItem("checkride_history_v5", JSON.stringify(history.slice(0, 25)));
 }
 
 function showHistory() {
@@ -172,7 +166,7 @@ function viewSavedReport(index) {
 }
 
 function clearHistory() {
-    if(confirm("Очистить всю историю?")) {
+    if(confirm("Удалить всю историю проверок?")) {
         localStorage.removeItem("checkride_history_v5");
         showHistory();
     }
