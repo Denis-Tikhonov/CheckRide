@@ -11,13 +11,29 @@ function setMode(mode) {
 async function startInspection() {
     const fio = document.getElementById("fio").value;
     const instructor = document.getElementById("instructor").value;
-    if (!fio || !instructor) return alert("Заполните ФИО проверяемого и ФИО проверяющего");
+    if (!fio || !instructor) return alert("Заполните ФИО проверяемого и проверяющего");
 
     const file = currentMode === 'line' ? 'data.json' : 'data_ffs.json';
+    
     try {
         const response = await fetch(file);
-        DATA = await response.json();
         
+        // Проверяем, не пустой ли ответ
+        if (!response.ok) {
+            throw new Error(`Сервер ответил кодом ${response.status}. Файл ${file} не найден.`);
+        }
+
+        const textData = await response.text(); // Сначала читаем как текст
+        
+        try {
+            DATA = JSON.parse(textData); // Пробуем превратить в объект
+        } catch (jsonError) {
+            console.error("Ошибка в структуре JSON:", jsonError);
+            console.log("Содержимое файла, которое пришло с сервера:", textData);
+            throw new Error(`В файле ${file} ошибка синтаксиса! Проверьте лишние запятые или кавычки. Детали: ${jsonError.message}`);
+        }
+        
+        // Если всё ок, продолжаем инициализацию
         DATA.checklists.forEach(sec => sec.items.forEach(i => {
             i.ok = false; i.note = ""; i.img = null;
         }));
@@ -25,9 +41,12 @@ async function startInspection() {
         currentSectionIndex = 0;
         renderSection();
         show('screen-test');
-    } catch (e) { alert("Ошибка загрузки данных"); }
+        
+    } catch (e) { 
+        // Показываем реальную причину ошибки пользователю
+        alert("ОШИБКА: " + e.message); 
+    }
 }
-
 function renderSection() {
     const section = DATA.checklists[currentSectionIndex];
     document.getElementById("section-title").innerText = section.name;
