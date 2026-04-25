@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CheckRide V3</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+<div id="app">
+
+<section id="screen-auth" class="screen">
+<h1>Регистрация проверки</h1>
+<input type="text" id="user-fio" placeholder="ФИО специалиста">
+<input type="text" id="user-license" placeholder="Номер лицензии">
+<button onclick="startTest()">Начать проверку</button>
+</section>
+
+<section id="screen-test" class="screen hidden">
+<h2 id="section-title"></h2>
+<div id="test-container"></div>
+<button onclick="showResults()">Завершить</button>
+<button onclick="showScreen('screen-auth')">Назад</button>
+</section>
+
+<section id="screen-results" class="screen hidden">
+<h2>Отчёт</h2>
+<div id="report-view">
+<p><b>Специалист:</b> <span id="res-fio"></span></p>
+<p><b>Лицензия:</b> <span id="res-license"></span></p>
+<hr>
+<div id="res-list"></div>
+</div>
+<button onclick="exportPDF()">Скачать PDF</button>
+<button onclick="showScreen('screen-test')">Назад</button>
+</section>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
