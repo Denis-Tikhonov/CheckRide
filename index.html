@@ -1,1 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>CheckRide V5</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
 
+<header>
+    <h1>CheckRide Enterprise</h1>
+</header>
+
+<main>
+    <!-- ЭКРАН 1: ВЫБОР -->
+    <section id="screen-start" class="screen">
+        <h2>Регистрация проверки</h2>
+        <div class="mode-selector">
+            <button type="button" id="btn-line" class="mode-btn active" onclick="setMode('line')">LINE</button>
+            <button type="button" id="btn-ffs" class="mode-btn" onclick="setMode('ffs')">FFS</button>
+        </div>
+        <input type="text" id="fio" placeholder="ФИО специалиста">
+        <input type="text" id="license" placeholder="Номер лицензии">
+        <button class="main-btn" onclick="startInspection()">Начать проверку</button>
+    </section>
+
+    <!-- ЭКРАН 2: ТЕСТ -->
+    <section id="screen-test" class="screen hidden">
+        <h2 id="section-title"></h2>
+        <div id="checklist"></div>
+        
+        <div class="nav-controls">
+            <button id="btn-prev" onclick="prevSection()">Назад</button>
+            <button id="btn-next" onclick="nextSection()">Далее</button>
+            <button id="btn-finish" class="finish-btn" onclick="finishTest()">Завершить проверку</button>
+        </div>
+    </section>
+
+    <!-- ЭКРАН 3: ОТЧЕТ -->
+    <section id="screen-report" class="screen hidden">
+        <div id="report-area">
+            <h2>Отчет по результатам проверки</h2>
+            <div class="report-meta">
+                <p><b>Специалист:</b> <span id="r_fio"></span></p>
+                <p><b>Лицензия:</b> <span id="r_license"></span></p>
+                <p><b>Дата:</b> <span id="r_date"></span></p>
+                <p><b>Тип:</b> <span id="r_mode"></span></p>
+            </div>
+            <hr>
+            <div id="report_items"></div>
+            <p><b>Подпись:</b></p>
+            <canvas id="signature" width="400" height="150"></canvas>
+        </div>
+
+        <div class="report-actions">
+            <button class="main-btn" onclick="exportPDF()">Скачать PDF</button>
+            <button onclick="resetApp()">Новая проверка</button>
+        </div>
+    </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
