@@ -6,7 +6,7 @@ background:#f3f3f3;
 }
 
 header{
-background:#1e88e5;
+background:#007aff;
 color:white;
 padding:15px;
 text-align:center;
@@ -17,17 +17,18 @@ padding:20px;
 }
 
 .screen{
-max-width:800px;
+max-width:700px;
 margin:auto;
 background:white;
 padding:20px;
 border-radius:10px;
-margin-bottom:20px;
 }
 
-.hidden{display:none}
+.hidden{
+display:none;
+}
 
-input,textarea,select{
+input,textarea{
 width:100%;
 margin:8px 0;
 padding:10px;
@@ -41,9 +42,4 @@ margin:10px 0;
 .item{
 border-bottom:1px solid #ddd;
 padding:10px 0;
-}
-
-canvas{
-border:1px solid #ccc;
-margin-top:10px;
 }
