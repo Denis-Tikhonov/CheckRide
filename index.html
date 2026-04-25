@@ -11,14 +11,14 @@
 
 <header class="no-print">
     <div class="header-container">
-        <!-- Замените 'logo.png' на путь к вашему файлу логотипа -->
-        <img src="logo.svg" alt="Logo" class="logo">
+        <!-- Логотип (убедитесь, что файл logo.png лежит в папке) -->
+        <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
         <h1>CheckRide Enterprise</h1>
     </div>
 </header>
 
 <main>
-    <!-- ЭКРАН 1: СТАРТ -->
+    <!-- ЭКРАН 1: РЕГИСТРАЦИЯ -->
     <section id="screen-start" class="screen">
         <h2>Регистрация</h2>
         <div class="mode-selector">
@@ -32,8 +32,58 @@
         <button class="secondary-btn" onclick="showHistory()">История</button>
     </section>
 
-    <!-- Остальные секции (test, report, history) остаются без изменений как в предыдущем ответе -->
-    <!-- ... -->
+    <!-- ЭКРАН 2: ПРОЦЕСС ТЕСТА -->
+    <section id="screen-test" class="screen hidden">
+        <h2 id="section-title"></h2> <!-- Сюда JS пишет Preflight / Takeoff -->
+        
+        <div id="checklist-items"></div> <!-- Сюда JS пишет чекбоксы -->
+        
+        <hr style="margin: 20px 0; border: 1px solid #ddd;">
+        <h3 style="color: #747678;">Комментарии и фото</h3>
+        
+        <div id="checklist-details"></div> <!-- Сюда JS пишет поля комментариев -->
+
+        <div class="navigation-controls">
+            <button id="btn-prev" class="nav-button" onclick="prevSection()">← Назад</button>
+            <button id="btn-next" class="nav-button" onclick="nextSection()">Далее →</button>
+            <button id="btn-finish" class="finish-btn hidden" onclick="finishInspection()">Завершить</button>
+        </div>
+    </section>
+
+    <!-- ЭКРАН 3: ИТОГОВЫЙ ОТЧЕТ -->
+    <section id="screen-report" class="screen hidden">
+        <div id="report-content">
+            <h2 style="color:rgb(205, 32, 44);">ОТЧЕТ ПО ПРОВЕРКЕ</h2>
+            <div class="meta">
+                <p><b>Проверяемый:</b> <span id="r_fio"></span></p>
+                <p><b>Лицензия:</b> <span id="r_license"></span></p>
+                <p><b>Дата:</b> <span id="r_date"></span></p>
+                <p><b>Режим:</b> <span id="r_mode"></span></p>
+            </div>
+            
+            <div id="report-data"></div> <!-- Сюда JS пишет все итоги -->
+            
+            <div style="margin-top:20px; border-top: 1px solid #000; padding-top: 10px;">
+                <p><b>Проверяющий:</b> <span id="r_instructor"></span></p>
+                <p><b>Подпись:</b></p>
+                <canvas id="signature" width="400" height="150" style="border:1px solid #000; width:100%; height: 150px;"></canvas>
+                <div id="sig-image-placeholder"></div>
+            </div>
+        </div>
+        
+        <div class="no-print">
+            <button class="main-btn" onclick="exportPDF()">Скачать PDF</button>
+            <button class="secondary-btn" onclick="resetApp()">На главную</button>
+        </div>
+    </section>
+
+    <!-- ЭКРАН 4: ИСТОРИЯ -->
+    <section id="screen-history" class="screen hidden">
+        <h2>История проверок</h2>
+        <div id="historyList"></div>
+        <button class="secondary-btn" style="background: rgb(205, 32, 44);" onclick="clearHistory()">Очистить историю</button>
+        <button class="secondary-btn" onclick="show('screen-start')">Назад</button>
+    </section>
 </main>
 
 <script src="app.js"></script>
