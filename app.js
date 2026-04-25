@@ -4,93 +4,93 @@ let currentSectionIndex = 0;
 let inspections = JSON.parse(localStorage.getItem("inspections") || "[]");
 
 const DATA_FILES = {
-    line: 'data.json', // Убедитесь, что файлы называются именно так
+    line: 'data.json',
     ffs: 'data_ffs.json'
 };
 
-async function loadData() {
-    try {
-        const url = DATA_FILES[currentMode];
-        const r = await fetch(url);
-        if (!r.ok) throw new Error('Ошибка загрузки файла данных');
-        DATA = await r.json();
-    } catch (e) {
-        alert("Не удалось загрузить данные: " + e.message);
-    }
-}
-
+// 1. Установка режима (Line/FFS)
 function setMode(mode) {
     currentMode = mode;
     document.getElementById('btn-line').classList.toggle('active', mode === 'line');
     document.getElementById('btn-ffs').classList.toggle('active', mode === 'ffs');
-    DATA = null; // Сброс данных при смене режима
 }
 
+// 2. Запуск проверки
 async function startInspection() {
-    // Проверка заполнения полей
-    if (!document.getElementById("fio").value) {
-        alert("Введите ФИО");
-        return;
+    const fio = document.getElementById("fio").value;
+    if (!fio) return alert("Пожалуйста, введите ФИО");
+
+    try {
+        const response = await fetch(DATA_FILES[currentMode]);
+        DATA = await response.json();
+        
+        // Инициализируем структуру для хранения ответов
+        DATA.checklists.forEach(section => {
+            section.items.forEach(item => {
+                item.answer_ok = false;
+                item.answer_note = "";
+                item.answer_img = null;
+            });
+        });
+
+        currentSectionIndex = 0;
+        renderSection();
+        show('screen-test');
+    } catch (e) {
+        alert("Ошибка загрузки данных. Проверьте наличие data.json и data_ffs.json");
     }
-
-    await loadData();
-    if (!DATA) return;
-
-    currentSectionIndex = 0;
-    renderSection();
-    show('screen-test');
 }
 
+// 3. Отрисовка текущего блока (Preflight / Takeoff и т.д.)
 function renderSection() {
     const section = DATA.checklists[currentSectionIndex];
     document.getElementById("section-title").innerText = section.name;
-
-    const box = document.getElementById("checklist");
-    box.innerHTML = "";
+    
+    const container = document.getElementById("checklist");
+    container.innerHTML = "";
 
     section.items.forEach(item => {
-        const el = document.createElement("div");
-        el.className = "item";
-        
-        // Создаем элементы программно, чтобы избежать ошибок с кавычками
-        el.innerHTML = `
-            <p><b>${item.label}</b></p>
-            <label><input type="checkbox" id="c_${item.id}"> Исправно (OK)</label>
-            <textarea id="n_${item.id}" placeholder="Комментарий"></textarea>
-            <input type="file" accept="image/*" id="img_${item.id}">
-            <div id="preview_${item.id}" class="image-preview"></div>
+        const div = document.createElement("div");
+        div.className = "item-card";
+        div.innerHTML = `
+            <p class="item-label">${item.label}</p>
+            <div class="item-inputs">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="c_${item.id}" ${item.answer_ok ? 'checked' : ''}> OK
+                </label>
+                <textarea id="n_${item.id}" placeholder="Комментарий">${item.answer_note}</textarea>
+                <input type="file" accept="image/*" id="f_${item.id}" class="file-input">
+                <div id="p_${item.id}" class="img-preview">
+                    ${item.answer_img ? `<img src="${item.answer_img}">` : ''}
+                </div>
+            </div>
         `;
-        box.appendChild(el);
+        container.appendChild(div);
 
-        // Слушатель для предпросмотра фото
-        const fileInput = el.querySelector(`#img_${item.id}`);
-        fileInput.addEventListener('change', function() {
-            previewImage(this, item.id);
+        // Обработка фото (сразу в Base64 для сохранения состояния)
+        const fileInput = div.querySelector(`#f_${item.id}`);
+        fileInput.addEventListener('change', async (e) => {
+            if (e.target.files[0]) {
+                const base64 = await toBase64(e.target.files[0]);
+                item.answer_img = base64;
+                div.querySelector(`#p_${item.id}`).innerHTML = `<img src="${base64}">`;
+            }
         });
     });
 
-    // Навигация
-    document.getElementById("btn-prev").style.display = currentSectionIndex === 0 ? "none" : "inline-block";
-    document.getElementById("btn-next").style.display = currentSectionIndex === DATA.checklists.length - 1 ? "none" : "inline-block";
-    document.getElementById("btn-finish").style.display = currentSectionIndex === DATA.checklists.length - 1 ? "inline-block" : "none";
-    
-    window.scrollTo(0,0);
+    updateNavigationButtons();
 }
 
-function previewImage(input, id) {
-    const preview = document.getElementById(`preview_${id}`);
-    preview.innerHTML = "";
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const img = document.createElement("img");
-            img.src = e.target.result;
-            img.style.maxWidth = "100%";
-            img.style.marginTop = "10px";
-            preview.appendChild(img);
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
+// 4. Навигация между блоками
+function updateNavigationButtons() {
+    const isFirst = currentSectionIndex === 0;
+    const isLast = currentSectionIndex === DATA.checklists.length - 1;
+
+    document.getElementById("btn-prev").classList.toggle("hidden", isFirst);
+    document.getElementById("btn-next").classList.toggle("hidden", isLast);
+    document.getElementById("btn-finish").classList.toggle("hidden", !isLast);
+    
+    window.scrollTo(0,0);
 }
 
 function nextSection() {
@@ -105,105 +105,122 @@ function prevSection() {
     renderSection();
 }
 
-// Сохраняем состояние в объект DATA, чтобы данные не пропадали при переходах
 function saveCurrentAnswers() {
     const section = DATA.checklists[currentSectionIndex];
     section.items.forEach(item => {
-        item.val_ok = document.getElementById(`c_${item.id}`).checked;
-        item.val_note = document.getElementById(`n_${item.id}`).value;
-        // Фото сохраняется в самом DOM элементе, для отчета соберем в конце
+        item.answer_ok = document.getElementById(`c_${item.id}`).checked;
+        item.answer_note = document.getElementById(`n_${item.id}`).value;
     });
 }
 
-async function finishTest() {
+// 5. Завершение и формирование отчета
+async function finishInspection() {
     saveCurrentAnswers();
     
-    const reportItems = document.getElementById("report_items");
-    reportItems.innerHTML = "";
+    const container = document.getElementById("report_items_container");
+    container.innerHTML = "";
 
-    // Собираем данные из всех блоков
-    for (const section of DATA.checklists) {
-        const sTitle = document.createElement("h3");
-        sTitle.innerText = section.name;
-        reportItems.appendChild(sTitle);
+    DATA.checklists.forEach(section => {
+        const secDiv = document.createElement("div");
+        secDiv.className = "report-section";
+        secDiv.innerHTML = `<h3>${section.name}</h3>`;
 
-        for (const item of section.items) {
-            const div = document.createElement("div");
-            div.className = "report-item-box";
-            
-            // Если фото было выбрано, получаем его dataURL
-            let imgHtml = "";
-            const fileInput = document.getElementById(`img_${item.id}`);
-            if (fileInput && fileInput.files[0]) {
-                const dataUrl = await toBase64(fileInput.files[0]);
-                imgHtml = `<img src="${dataUrl}" style="max-width:300px; display:block; margin-top:10px;">`;
-            }
-
-            div.innerHTML = `
-                <p><b>${item.label}</b><br>
-                Статус: ${item.val_ok ? "✅ OK" : "❌ Нарушение"}<br>
-                Комментарий: ${item.val_note || "-"}</p>
-                ${imgHtml}
+        section.items.forEach(item => {
+            const itemDiv = document.createElement("div");
+            itemDiv.className = "report-row";
+            itemDiv.innerHTML = `
+                <p><b>${item.label}</b></p>
+                <p>Статус: ${item.answer_ok ? "✅ OK" : "❌ Нарушение"}</p>
+                <p>Комментарий: ${item.answer_note || "-"}</p>
+                ${item.answer_img ? `<img src="${item.answer_img}" class="report-img">` : ""}
                 <hr>
             `;
-            reportItems.appendChild(div);
-        }
-    }
+            secDiv.appendChild(itemDiv);
+        });
+        container.appendChild(secDiv);
+    });
 
+    // Мета данные
     document.getElementById("r_fio").innerText = document.getElementById("fio").value;
     document.getElementById("r_license").innerText = document.getElementById("license").value;
     document.getElementById("r_date").innerText = new Date().toLocaleString();
     document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 
-    initSignature();
+    saveToHistory();
     show("screen-report");
+    setTimeout(initSignature, 100); // Небольшая задержка для прорисовки canvas
 }
 
-const toBase64 = file => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
-});
-
+// 6. Подпись (Canvas)
 function initSignature() {
     const canvas = document.getElementById("signature");
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     let drawing = false;
 
-    const start = () => drawing = true;
-    const stop = () => { drawing = false; ctx.beginPath(); };
-    const draw = (e) => {
-        if (!drawing) return;
-        ctx.lineWidth = 2;
-        ctx.lineCap = "round";
-        ctx.strokeStyle = "#000";
-        
+    const getPos = (e) => {
         const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX || e.touches[0].clientX) - rect.left;
-        const y = (e.clientY || e.touches[0].clientY) - rect.top;
-
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x, y);
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
     };
 
-    canvas.onmousedown = start; canvas.onmouseup = stop; canvas.onmousemove = draw;
-    canvas.ontouchstart = start; canvas.ontouchend = stop; canvas.ontouchmove = draw;
+    const start = (e) => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
+    const draw = (e) => { 
+        if (!drawing) return; 
+        e.preventDefault(); 
+        const p = getPos(e); 
+        ctx.lineTo(p.x, p.y); 
+        ctx.stroke(); 
+    };
+    const stop = () => drawing = false;
+
+    canvas.onmousedown = start; canvas.onmousemove = draw; canvas.onmouseup = stop;
+    canvas.ontouchstart = start; canvas.ontouchmove = draw; canvas.ontouchend = stop;
+    ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#000";
 }
 
+// 7. Экспорт PDF
 function exportPDF() {
-    const el = document.getElementById("report-area");
+    const element = document.getElementById("report-to-export");
     const opt = {
         margin: 10,
-        filename: 'report.pdf',
+        filename: `Report_${currentMode.toUpperCase()}_${new Date().getTime()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    html2pdf().set(opt).from(el).save();
+    html2pdf().set(opt).from(element).save();
+}
+
+// 8. Утилиты и LocalStorage
+function saveToHistory() {
+    const record = {
+        fio: document.getElementById("fio").value,
+        mode: currentMode.toUpperCase(),
+        date: new Date().toLocaleString()
+    };
+    inspections.unshift(record);
+    localStorage.setItem("inspections", JSON.stringify(inspections.slice(0, 20)));
+}
+
+function showHistory() {
+    const list = document.getElementById("historyList");
+    list.innerHTML = inspections.map(i => `
+        <div class="history-item">
+            <b>${i.fio}</b> [${i.mode}]<br><small>${i.date}</small>
+        </div>
+    `).join("");
+    show("screen-history");
+}
+
+function toBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
 }
 
 function show(id) {
@@ -212,7 +229,10 @@ function show(id) {
 }
 
 function resetApp() {
-    if(confirm("Начать заново? Все данные текущей проверки будут удалены.")) {
-        location.reload();
-    }
+    if (confirm("Начать новую проверку? Текущие данные будут сброшены.")) location.reload();
+}
+
+// Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
 }
