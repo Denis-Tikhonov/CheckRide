@@ -1,5 +1,5 @@
 
-const CACHE="checkride-v4"
+const CACHE="checkride-v5"
 
 self.addEventListener("install",e=>{
 e.waitUntil(
