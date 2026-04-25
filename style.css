@@ -6,34 +6,65 @@
     --white: rgb(255, 255, 255);
 }
 
-body { font-family: sans-serif; background: var(--light-grey); margin: 0; }
+body { font-family: sans-serif; background: var(--light-grey); margin: 0; padding: 0; }
 header { background: var(--red); color: white; text-align: center; padding: 10px; }
-.screen { background: white; max-width: 600px; margin: 20px auto; padding: 20px; border-radius: 8px; }
+.screen { background: white; max-width: 650px; margin: 15px auto; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 .hidden { display: none !important; }
 
-/* Кнопки и формы */
-input, textarea { width: 100%; margin: 10px 0; padding: 10px; box-sizing: border-box; }
-.mode-selector { display: flex; gap: 10px; margin-bottom: 15px; }
-.mode-btn { flex: 1; padding: 10px; cursor: pointer; border: 1px solid var(--dark-grey); }
-.mode-btn.active { background: var(--red); color: white; }
-.main-btn { background: var(--red); color: white; width: 100%; padding: 15px; border: none; cursor: pointer; }
+/* Чекбоксы: Исправление выравнивания */
+.check-item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
 
-/* Чекбокс слева в одну строку */
-.checkbox-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-weight: bold; }
-.checkbox-row input { width: 20px; height: 20px; margin: 0; }
+.check-item input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0; /* Не дает чекбоксу сжиматься */
+    margin: 0;
+    cursor: pointer;
+}
 
-/* Навигация */
-.navigation-controls { display: flex; justify-content: space-between; margin-top: 20px; }
-.navigation-controls button { padding: 10px 20px; cursor: pointer; }
+.check-item label {
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 1.2;
+}
 
-/* Стили отчета для PDF */
-.report-paper { color: var(--black); }
-.report-title { color: var(--red); border-bottom: 2px solid var(--red); }
-.rep-sec-title { background: #eee; padding: 5px; margin-top: 20px; }
-.rep-row { border-bottom: 1px solid var(--light-grey); padding: 10px 0; }
-.flex-row { display: flex; align-items: center; gap: 10px; }
-.box { border: 1px solid black; width: 16px; height: 16px; display: inline-block; text-align: center; line-height: 16px; }
-.rep-img { max-width: 200px; display: block; margin-top: 10px; }
-canvas { border: 1px solid black; background: #fff; display: block; }
+/* Комментарии внизу */
+.detail-item {
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 5px;
+}
 
-@media print { .no-print { display: none; } }
+.detail-item b { display: block; margin-bottom: 5px; font-size: 14px; }
+
+textarea { width: 100%; height: 60px; margin: 5px 0; padding: 8px; box-sizing: border-box; border: 1px solid var(--dark-grey); }
+
+.mode-selector { display: flex; gap: 5px; margin-bottom: 15px; }
+.mode-btn { flex: 1; padding: 10px; border: 1px solid var(--dark-grey); background: white; cursor: pointer; }
+.mode-btn.active { background: var(--red); color: white; border-color: var(--red); }
+
+button { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.main-btn { background: var(--red); color: white; width: 100%; padding: 15px; font-size: 16px; margin-top: 10px; }
+.secondary-btn { background: var(--dark-grey); color: white; width: 100%; padding: 10px; margin-top: 10px; }
+.navigation-controls { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
+.nav-button { flex: 1; padding: 15px; background: var(--black); color: white; }
+.finish-btn { flex: 1; padding: 15px; background: var(--red); color: white; }
+
+/* Отчет */
+.rep-sec { border-bottom: 2px solid var(--red); margin-top: 20px; }
+.flex-row { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+.box { border: 1px solid black; width: 18px; height: 18px; display: inline-block; text-align: center; line-height: 18px; font-weight: bold; }
+
+@media (max-width: 480px) {
+    .screen { margin: 10px; padding: 15px; }
+}
