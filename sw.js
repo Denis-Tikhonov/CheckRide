@@ -8,7 +8,9 @@ caches.open(CACHE).then(c=>c.addAll([
 "/index.html",
 "/app.js",
 "/style.css",
-"/data.json"
+"/data.json",
+  "/data_line.json",
+  "/data_ffs.json"
 ]))
 )
 })
