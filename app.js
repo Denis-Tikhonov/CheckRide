@@ -254,18 +254,27 @@ function clearHistory() {
 }
 
 function exportPDF() {
-    const canvas = document.getElementById("signature");
-    const placeholder = document.getElementById("sig-image-placeholder");
-    if (canvas && canvas.style.display !== "none") {
-        placeholder.innerHTML = `<img src="${canvas.toDataURL()}" style="width:250px; border-bottom:1px solid #000;">`;
-        canvas.style.display = "none";
-    }
+
     const element = document.getElementById("report-content");
-    html2pdf().set({
-        margin: 10, filename: 'Report.pdf',
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).from(element).save();
+
+    const opt = {
+        margin:       10,
+        filename:     'checkride_report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        },
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+        },
+        pagebreak: { mode: ['css', 'legacy'] }
+    };
+
+    html2pdf().set(opt).from(element).save();
 }
 
 function initSignature() {
