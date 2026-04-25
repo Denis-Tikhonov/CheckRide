@@ -17,13 +17,25 @@ async function startInspection() {
     try {
         const response = await fetch(file);
         DATA = await response.json();
-        DATA.checklists.forEach(sec => sec.items.forEach(i => {
-            i.ok = false; i.note = ""; i.img = null;
-        }));
+
+        // ИСПРАВЛЕНО: Инициализация с учетом новой вложенности (sections)
+        DATA.checklists.forEach(mainSec => {
+            mainSec.sections.forEach(sec => {
+                sec.items.forEach(i => {
+                    i.ok = (i.type === "radio") ? false : false; 
+                    i.note = ""; 
+                    i.img = null;
+                });
+            });
+        });
+
         currentSectionIndex = 0;
         renderSection();
         show('screen-test');
-    } catch (e) { alert("Ошибка загрузки данных"); }
+    } catch (e) { 
+        console.error(e);
+        alert("Ошибка загрузки или обработки данных. Проверьте структуру JSON."); 
+    }
 }
 
 function renderSection() {
@@ -37,7 +49,6 @@ function renderSection() {
     detailsBox.innerHTML = "";
 
     mainSection.sections.forEach(sec => {
-        // Добавляем подзаголовок (subname)
         const subHeader = document.createElement("h3");
         subHeader.className = "subname-title";
         subHeader.innerText = sec.subname;
@@ -54,7 +65,7 @@ function renderSection() {
                         <label for="c_${item.id}">${item.label}</label>
                     </div>`;
             } else if (item.type === "radio") {
-                let radioOptions = item.options.map((opt, idx) => `
+                let radioOptions = item.options.map((opt) => `
                     <label class="radio-option">
                         <input type="radio" name="r_${item.id}" value="${opt}" ${item.ok === opt ? 'checked' : ''}>
                         <span>${opt}</span>
@@ -67,17 +78,15 @@ function renderSection() {
                         ${radioOptions}
                     </div>`;
             }
-
             itemsBox.appendChild(itemDiv);
 
-            // Создаем блок деталей (комментарий + фото)
             const detailDiv = document.createElement("div");
             detailDiv.className = "detail-item";
             detailDiv.innerHTML = `
                 <b style="font-size:11px; color:var(--dark-grey);">${item.label}</b>
                 <textarea id="n_${item.id}" placeholder="Комментарий...">${item.note || ''}</textarea>
                 <input type="file" accept="image/*" onchange="handleFile(this, '${item.id}')">
-                <div id="p_${item.id}">${item.img ? `<img src="${item.img}" width="70">` : ''}</div>
+                <div id="p_${item.id}">${item.img ? `<img src="${item.img}" width="70" style="margin-top:5px;">` : ''}</div>
             `;
             detailsBox.appendChild(detailDiv);
         });
@@ -102,13 +111,17 @@ function saveState() {
     });
 }
 
+// ИСПРАВЛЕНО: Поиск айтема для сохранения фото с учетом вложенности
 async function handleFile(input, id) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
             const b64 = e.target.result;
-            DATA.checklists.forEach(s => s.items.forEach(i => { if(i.id === id) i.img = b64; }));
-            document.getElementById(`p_${id}`).innerHTML = `<img src="${b64}" width="70" style="margin-top:5px;">`;
+            DATA.checklists.forEach(m => m.sections.forEach(s => s.items.forEach(i => {
+                if(i.id === id) i.img = b64;
+            })));
+            const preview = document.getElementById(`p_${id}`);
+            if (preview) preview.innerHTML = `<img src="${b64}" width="70" style="margin-top:5px;">`;
         };
         reader.readAsDataURL(input.files[0]);
     }
@@ -136,58 +149,42 @@ function finishInspection() {
 function buildReport() {
     const container = document.getElementById("report-data");
     if (!container) return;
-    
     container.innerHTML = "";
 
-    // 1. Проходим по всем главным экранам (Preflight, Takeoff и т.д.)
     DATA.checklists.forEach(mainSec => {
         const mainTitle = document.createElement("h2");
-        mainTitle.style.color = "var(--red)";
-        mainTitle.style.marginTop = "25px";
-        mainTitle.style.borderBottom = "2px solid var(--red)";
-        mainTitle.style.paddingBottom = "5px";
+        mainTitle.style.cssText = "color:var(--red); margin-top:25px; border-bottom:2px solid var(--red); padding-bottom:5px;";
         mainTitle.innerText = mainSec.name;
         container.appendChild(mainTitle);
 
-        // 2. Проходим по подразделам (Стандартные процедуры, Компетенции и т.д.)
         mainSec.sections.forEach(sec => {
-            if (sec.items.length > 0) { // Показываем заголовок, только если в секции есть пункты
+            if (sec.items.length > 0) {
                 const subTitle = document.createElement("h3");
-                subTitle.style.background = "#f4f4f4";
-                subTitle.style.padding = "5px 10px";
-                subTitle.style.margin = "15px 0 10px 0";
-                subTitle.style.fontSize = "16px";
+                subTitle.style.cssText = "background:#f4f4f4; padding:5px 10px; margin:15px 0 10px 0; font-size:16px; border-left:4px solid var(--red);";
                 subTitle.innerText = sec.subname;
                 container.appendChild(subTitle);
             }
 
-            // 3. Проходим по конкретным пунктам
             sec.items.forEach(item => {
                 const itemDiv = document.createElement("div");
-                itemDiv.style.marginBottom = "12px";
-                itemDiv.style.paddingBottom = "8px";
-                itemDiv.style.borderBottom = "1px solid #f0f0f0";
+                itemDiv.style.cssText = "margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid #f0f0f0;";
 
                 let resultHtml = "";
-                
-                // Обработка чекбоксов (как было раньше)
                 if (item.type === "checkbox") {
                     resultHtml = `
                         <div class="flex-row">
                             <div class="box">${item.ok ? 'X' : ''}</div>
                             <span style="font-size:14px; margin-left:8px;">Статус: ${item.ok ? 'OK' : 'Нарушение'}</span>
                         </div>`;
-                } 
-                // Обработка радио-кнопок (выбранная опция)
-                else if (item.type === "radio") {
+                } else if (item.type === "radio") {
                     resultHtml = `
-                        <div style="font-size:14px; color: var(--black); margin: 5px 0;">
+                        <div style="font-size:14px; color:var(--black); margin:5px 0;">
                             <b>Выбрано:</b> ${item.ok ? item.ok : '<span style="color:red;">Не выбрано</span>'}
                         </div>`;
                 }
 
                 itemDiv.innerHTML = `
-                    <p style="margin: 5px 0; font-size: 15px;"><b>${item.label}</b></p>
+                    <p style="margin:5px 0; font-size:15px;"><b>${item.label}</b></p>
                     ${resultHtml}
                     <p style="font-size:13px; margin:5px 0; color:#555;"><i>Комментарий:</i> ${item.note || '-'}</p>
                     ${item.img ? `<img src="${item.img}" style="max-width:250px; display:block; margin:10px 0; border-radius:4px;">` : ''}
@@ -197,24 +194,13 @@ function buildReport() {
         });
     });
 
-    // 4. Заполняем мета-данные (ФИО, Лицензия и т.д.) в шапке отчета
-    const metaMap = {
-        "r_fio": "fio",
-        "r_license": "license",
-        "r_instructor": "instructor"
-    };
-
-    for (let [reportId, inputId] of Object.entries(metaMap)) {
-        const el = document.getElementById(reportId);
-        if (el) el.innerText = document.getElementById(inputId).value;
-    }
-
-    const rDat = document.getElementById("r_date");
-    const rMod = document.getElementById("r_mode");
-
-    if (rDat) rDat.innerText = DATA.savedDate || new Date().toLocaleString();
-    if (rMod) rMod.innerText = currentMode.toUpperCase();
+    document.getElementById("r_fio").innerText = document.getElementById("fio").value;
+    document.getElementById("r_license").innerText = document.getElementById("license").value;
+    document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
+    document.getElementById("r_date").innerText = DATA.savedDate || new Date().toLocaleString();
+    document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 }
+
 function saveToLocalStorage() {
     const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
     const canvas = document.getElementById("signature");
@@ -224,7 +210,7 @@ function saveToLocalStorage() {
         instructor: document.getElementById("instructor").value,
         date: new Date().toLocaleString(),
         mode: currentMode,
-        fullData: JSON.parse(JSON.stringify(DATA)), // Глубокое сохранение
+        fullData: JSON.parse(JSON.stringify(DATA)),
         signature: canvas ? canvas.toDataURL() : null
     };
     history.unshift(entry);
@@ -270,7 +256,7 @@ function clearHistory() {
 function exportPDF() {
     const canvas = document.getElementById("signature");
     const placeholder = document.getElementById("sig-image-placeholder");
-    if (canvas.style.display !== "none") {
+    if (canvas && canvas.style.display !== "none") {
         placeholder.innerHTML = `<img src="${canvas.toDataURL()}" style="width:250px; border-bottom:1px solid #000;">`;
         canvas.style.display = "none";
     }
@@ -284,6 +270,7 @@ function exportPDF() {
 
 function initSignature() {
     const canvas = document.getElementById("signature");
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const placeholder = document.getElementById("sig-image-placeholder");
     canvas.style.display = "block"; placeholder.innerHTML = "";
