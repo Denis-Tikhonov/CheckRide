@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CheckRide V5 Enterprise</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Локальное подключение библиотеки -->
+    <script src="html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -44,7 +45,8 @@
     </section>
 
     <section id="screen-report" class="screen hidden">
-        <div id="report-content">
+        <!-- Блок, который идет в PDF -->
+        <div id="report-content" style="background: white; padding: 10px;">
             <h2 class="report-main-title">ОТЧЕТ ПО ПРОВЕРКЕ</h2>
             <div class="report-meta">
                 <p><b>Проверяемый:</b> <span id="r_fio"></span></p>
@@ -52,16 +54,19 @@
                 <p><b>Дата:</b> <span id="r_date"></span></p>
                 <p><b>Режим:</b> <span id="r_mode"></span></p>
             </div>
+            
             <div id="report-data"></div>
+            
             <div class="signature-section">
                 <p><b>Проверяющий:</b> <span id="r_instructor"></span></p>
                 <p><b>Подпись:</b></p>
-                <canvas id="signature" width="400" height="150"></canvas>
+                <canvas id="signature" width="400" height="150" style="border:1px solid #000; width:100%;"></canvas>
                 <div id="sig-image-placeholder"></div>
             </div>
         </div>
+        
         <div class="no-print">
-            <button class="main-btn" onclick="exportPDF()">Скачать PDF</button>
+            <button class="main-btn" id="pdf-btn" onclick="exportPDF()">Скачать PDF</button>
             <button class="secondary-btn" onclick="resetApp()">На главную</button>
         </div>
     </section>
