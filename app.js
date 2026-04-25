@@ -27,32 +27,79 @@ async function startInspection() {
 }
 
 function renderSection() {
-    const section = DATA.checklists[currentSectionIndex];
+    const mainSection = DATA.checklists[currentSectionIndex];
     const itemsBox = document.getElementById("checklist-items");
     const detailsBox = document.getElementById("checklist-details");
     const titleEl = document.getElementById("section-title");
 
-    titleEl.innerText = section.name;
+    titleEl.innerText = mainSection.name;
     itemsBox.innerHTML = "";
     detailsBox.innerHTML = "";
 
-    section.items.forEach(item => {
-        const itemDiv = document.createElement("div");
-        itemDiv.className = "check-item";
-        itemDiv.innerHTML = `<input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}><label for="c_${item.id}">${item.label}</label>`;
-        itemsBox.appendChild(itemDiv);
+    mainSection.sections.forEach(sec => {
+        // Добавляем подзаголовок (subname)
+        const subHeader = document.createElement("h3");
+        subHeader.className = "subname-title";
+        subHeader.innerText = sec.subname;
+        itemsBox.appendChild(subHeader);
 
-        const detailDiv = document.createElement("div");
-        detailDiv.className = "detail-item";
-        detailDiv.innerHTML = `
-            <b>К пункту: ${item.label}</b>
-            <textarea id="n_${item.id}" placeholder="Комментарий...">${item.note}</textarea>
-            <input type="file" accept="image/*" onchange="handleFile(this, '${item.id}')">
-            <div id="p_${item.id}">${item.img ? `<img src="${item.img}" width="70" style="margin-top:5px;">` : ''}</div>
-        `;
-        detailsBox.appendChild(detailDiv);
+        sec.items.forEach(item => {
+            const itemDiv = document.createElement("div");
+            itemDiv.className = "item-container";
+
+            if (item.type === "checkbox") {
+                itemDiv.innerHTML = `
+                    <div class="check-item">
+                        <input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}>
+                        <label for="c_${item.id}">${item.label}</label>
+                    </div>`;
+            } else if (item.type === "radio") {
+                let radioOptions = item.options.map((opt, idx) => `
+                    <label class="radio-option">
+                        <input type="radio" name="r_${item.id}" value="${opt}" ${item.ok === opt ? 'checked' : ''}>
+                        <span>${opt}</span>
+                    </label>
+                `).join("");
+                
+                itemDiv.innerHTML = `
+                    <div class="radio-group">
+                        <p class="radio-label"><b>${item.label}</b></p>
+                        ${radioOptions}
+                    </div>`;
+            }
+
+            itemsBox.appendChild(itemDiv);
+
+            // Создаем блок деталей (комментарий + фото)
+            const detailDiv = document.createElement("div");
+            detailDiv.className = "detail-item";
+            detailDiv.innerHTML = `
+                <b style="font-size:11px; color:var(--dark-grey);">${item.label}</b>
+                <textarea id="n_${item.id}" placeholder="Комментарий...">${item.note || ''}</textarea>
+                <input type="file" accept="image/*" onchange="handleFile(this, '${item.id}')">
+                <div id="p_${item.id}">${item.img ? `<img src="${item.img}" width="70">` : ''}</div>
+            `;
+            detailsBox.appendChild(detailDiv);
+        });
     });
     updateNav();
+}
+
+function saveState() {
+    const mainSection = DATA.checklists[currentSectionIndex];
+    mainSection.sections.forEach(sec => {
+        sec.items.forEach(item => {
+            if (item.type === "checkbox") {
+                const cb = document.getElementById(`c_${item.id}`);
+                if (cb) item.ok = cb.checked;
+            } else if (item.type === "radio") {
+                const selected = document.querySelector(`input[name="r_${item.id}"]:checked`);
+                item.ok = selected ? selected.value : false;
+            }
+            const nt = document.getElementById(`n_${item.id}`);
+            if (nt) item.note = nt.value;
+        });
+    });
 }
 
 async function handleFile(input, id) {
@@ -65,16 +112,6 @@ async function handleFile(input, id) {
         };
         reader.readAsDataURL(input.files[0]);
     }
-}
-
-function saveState() {
-    const section = DATA.checklists[currentSectionIndex];
-    section.items.forEach(item => {
-        const cb = document.getElementById(`c_${item.id}`);
-        const nt = document.getElementById(`n_${item.id}`);
-        if(cb) item.ok = cb.checked;
-        if(nt) item.note = nt.value;
-    });
 }
 
 function nextSection() { saveState(); currentSectionIndex++; renderSection(); }
