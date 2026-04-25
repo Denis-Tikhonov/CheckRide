@@ -7,7 +7,37 @@
 }
 
 body { font-family: Arial, sans-serif; background: var(--light-grey); margin: 0; padding: 0; }
-header { background: var(--red); color: white; text-align: center; padding: 10px; }
+
+/* Обновленный Header */
+header { 
+    background: var(--red); 
+    color: white; 
+    padding: 10px 20px; 
+}
+
+.header-container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center; /* Центрирует логотип и текст по вертикали */
+    justify-content: flex-start; /* Все элементы прижаты к левому краю */
+    gap: 15px; /* Расстояние между логотипом и названием */
+}
+
+.logo {
+    height: 40px; /* Высота логотипа */
+    width: auto;
+    display: block;
+    flex-shrink: 0; /* Чтобы логотип не сжимался */
+}
+
+header h1 { 
+    margin: 0; 
+    font-size: 20px; 
+    font-weight: bold;
+}
+
+/* Остальные стили (.screen, .hidden, .check-item и т.д.) остаются прежними */
 .screen { background: white; max-width: 650px; margin: 15px auto; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 .hidden { display: none !important; }
 
@@ -30,18 +60,20 @@ button { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
 .nav-button { flex: 1; padding: 15px; background: var(--black); color: white; }
 .finish-btn { flex: 1; padding: 15px; background: var(--red); color: white; }
 
-/* История */
-.history-card {
-    padding: 15px;
-    border: 1px solid #ddd;
-    margin-bottom: 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background 0.2s;
+.history-card { 
+    padding: 15px; 
+    border: 1px solid #ddd; 
+    margin-bottom: 10px; 
+    border-radius: 5px; 
+    cursor: pointer; 
+    text-align: left;
 }
-.history-card:hover { background: #f0f0f0; }
 
 .flex-row { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
 .box { border: 1px solid #000; width: 18px; height: 18px; display: inline-block; text-align: center; line-height: 18px; font-weight: bold; }
 
-@media (max-width: 480px) { .screen { margin: 10px; } }
+@media (max-width: 480px) {
+    .header-container { gap: 10px; }
+    .logo { height: 30px; }
+    header h1 { font-size: 18px; }
+}
