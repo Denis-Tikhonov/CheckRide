@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CheckRide V5 Enterprise</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -10,11 +10,10 @@
 <body>
 
 <header class="no-print">
-    <h1>CheckRide V5 Enterprise</h1>
+    <h1>CheckRide Enterprise</h1>
 </header>
 
 <main>
-    <!-- ЭКРАН 1: СТАРТ -->
     <section id="screen-start" class="screen">
         <h2>Регистрация</h2>
         <div class="mode-selector">
@@ -24,45 +23,54 @@
         <input type="text" id="fio" placeholder="ФИО специалиста">
         <input type="text" id="license" placeholder="Номер лицензии">
         <button class="main-btn" onclick="startInspection()">Начать проверку</button>
+        <button class="secondary-btn" onclick="showHistory()">История</button>
     </section>
 
-    <!-- ЭКРАН 2: ТЕСТ -->
     <section id="screen-test" class="screen hidden">
         <h2 id="section-title"></h2>
-        <div id="checklist"></div>
+        
+        <!-- Контейнер для чекбоксов -->
+        <div id="checklist-items"></div>
+        
+        <hr style="margin: 20px 0; border: 1px solid var(--light-grey);">
+        <h3 style="color: var(--dark-grey);">Комментарии и фото</h3>
+        
+        <!-- Контейнер для комментариев и фото -->
+        <div id="checklist-details"></div>
+
         <div class="navigation-controls">
-            <button id="btn-prev" onclick="prevSection()">← Назад</button>
-            <button id="btn-next" onclick="nextSection()">Далее →</button>
+            <button id="btn-prev" class="nav-button" onclick="prevSection()">← Назад</button>
+            <button id="btn-next" class="nav-button" onclick="nextSection()">Далее →</button>
             <button id="btn-finish" class="finish-btn hidden" onclick="finishInspection()">Завершить</button>
         </div>
     </section>
 
-    <!-- ЭКРАН 3: ОТЧЕТ (Конвертируется в PDF целиком) -->
     <section id="screen-report" class="screen hidden">
-        <div id="report-content" class="report-paper">
-            <h2 class="report-title">ОТЧЕТ ПО ПРОВЕРКЕ</h2>
-            
-            <div class="report-meta">
+        <div id="report-content">
+            <h2 style="color:rgb(205, 32, 44);">ОТЧЕТ ПО ПРОВЕРКЕ</h2>
+            <div class="meta">
                 <p><b>Специалист:</b> <span id="r_fio"></span></p>
                 <p><b>Лицензия:</b> <span id="r_license"></span></p>
                 <p><b>Дата:</b> <span id="r_date"></span></p>
                 <p><b>Режим:</b> <span id="r_mode"></span></p>
             </div>
-
             <div id="report-data"></div>
-
-            <div class="signature-area">
-                <p><b>Подпись специалиста:</b></p>
-                <canvas id="signature" width="400" height="150"></canvas>
-                <!-- Место для вставки картинки подписи при экспорте -->
-                <div id="sig-image-container"></div>
+            <div style="margin-top:20px;">
+                <p><b>Подпись:</b></p>
+                <canvas id="signature" width="400" height="150" style="border:1px solid #000; width:100%;"></canvas>
+                <div id="sig-image-placeholder"></div>
             </div>
         </div>
-
-        <div class="report-actions no-print">
+        <div class="no-print">
             <button class="main-btn" onclick="exportPDF()">Скачать PDF</button>
             <button class="secondary-btn" onclick="resetApp()">Новая проверка</button>
         </div>
+    </section>
+
+    <section id="screen-history" class="screen hidden">
+        <h2>История</h2>
+        <div id="historyList"></div>
+        <button class="secondary-btn" onclick="show('screen-start')">Назад</button>
     </section>
 </main>
 
