@@ -1,4 +1,3 @@
-/* Палитра */
 :root {
     --red: rgb(205, 32, 44);
     --black: rgb(0, 0, 0);
@@ -8,100 +7,52 @@
     --white: rgb(255, 255, 255);
 }
 
-body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: var(--light-grey);
-    color: var(--black);
-    margin: 0;
+body { font-family: Arial, sans-serif; background: var(--light-grey); margin: 0; padding: 0; color: var(--black); }
+header { background: var(--red); color: var(--white); text-align: center; padding: 15px; }
+main { padding: 15px; }
+
+.screen { 
+    background: var(--white); max-width: 600px; margin: auto; 
+    padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
 }
 
-header {
-    background-color: var(--red);
-    color: var(--white);
-    padding: 20px;
-    text-align: center;
-    border-bottom: 4px solid var(--dark-red);
+.hidden { display: none !important; }
+
+/* Поля ввода */
+input[type="text"], textarea {
+    width: 100%; padding: 12px; margin: 10px 0;
+    border: 1px solid var(--dark-grey); border-radius: 4px; box-sizing: border-box;
 }
 
-.screen {
-    max-width: 600px;
-    margin: 20px auto;
-    background: var(--white);
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+/* Кнопки режима */
+.mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+.mode-btn { 
+    flex: 1; padding: 12px; border: 2px solid var(--dark-grey); 
+    background: var(--white); font-weight: bold; cursor: pointer;
 }
+.mode-btn.active { background: var(--red); color: var(--white); border-color: var(--dark-red); }
 
-.hidden { display: none; }
+/* Кнопки действий */
+button { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+.main-btn { background: var(--red); color: var(--white); width: 100%; padding: 15px; font-size: 16px; }
+.secondary-btn { background: var(--dark-grey); color: var(--white); width: 100%; padding: 12px; margin-top: 10px; }
+.finish-btn { background: var(--dark-red); color: var(--white); padding: 12px 20px; }
+.nav-btn { background: var(--black); color: var(--white); padding: 12px 20px; flex: 1; }
 
-/* Кнопки переключения Line/FFS */
-.mode-selector {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+/* Чекбокс и текст OK в одну строку */
+.checkbox-container {
+    display: flex; align-items: center; justify-content: flex-start;
+    gap: 10px; margin: 10px 0; cursor: pointer; font-weight: bold;
 }
+.checkbox-container input { width: 22px; height: 22px; margin: 0; }
 
-.mode-btn {
-    flex: 1;
-    background: var(--dark-grey);
-    color: white;
-    padding: 12px;
-    border: none;
-    cursor: pointer;
-}
+/* Пункты теста */
+.item-card { border-bottom: 2px solid var(--light-grey); padding: 15px 0; }
+.navigation-controls { display: flex; gap: 10px; margin-top: 20px; justify-content: space-between; }
 
-.mode-btn.active {
-    background: var(--red);
-}
+/* Подпись */
+canvas { border: 1px solid var(--black); background: #fff; width: 100%; touch-action: none; margin-top: 10px; }
 
-/* Формы */
-input, textarea {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border: 1px solid var(--dark-grey);
-    box-sizing: border-box;
-}
-
-button {
-    background: var(--dark-grey);
-    color: white;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.main-btn, .finish-btn {
-    background: var(--red);
-    width: 100%;
-    font-size: 1.1em;
-}
-
-.main-btn:hover, .finish-btn:hover {
-    background: var(--dark-red);
-}
-
-/* Элементы чек-листа */
-.item {
-    border-bottom: 1px solid var(--light-grey);
-    padding: 15px 0;
-}
-
-.nav-controls {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-}
-
-canvas {
-    border: 2px solid var(--black);
-    background: #fff;
-    width: 100%;
-    max-width: 400px;
-}
-
-.report-item-box {
-    margin-bottom: 15px;
-}
+/* Отчет */
+.report-row { margin-bottom: 15px; border-bottom: 1px solid var(--light-grey); padding-bottom: 10px; }
+.report-img { max-width: 250px; display: block; margin-top: 10px; }
