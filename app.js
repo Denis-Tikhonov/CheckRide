@@ -24,7 +24,6 @@ async function startInspection() {
             mainSec.sections.forEach(sec => {
                 sec.note = "";
                 sec.img = null;
-                // Инициализация внутри новых групп groups
                 const groups = sec.groups || [{ items: sec.items || [] }]; 
                 groups.forEach(group => {
                     group.items.forEach(i => {
@@ -49,27 +48,22 @@ function renderSection() {
     itemsBox.innerHTML = "";
 
     mainSection.sections.forEach((sec, secIdx) => {
-        // Подзаголовок (Стандартные процедуры / Компетенции)
         const subHeader = document.createElement("h3");
         subHeader.className = "subname-title";
         subHeader.innerText = sec.subname;
         itemsBox.appendChild(subHeader);
 
         const groups = sec.groups || [{ items: sec.items || [] }];
-
         groups.forEach(group => {
-            // Если есть topitem, рисуем заголовок группы
             if (group.topitem) {
                 const topHeader = document.createElement("h4");
                 topHeader.className = "topitem-title";
                 topHeader.innerText = group.topitem;
                 itemsBox.appendChild(topHeader);
             }
-
             group.items.forEach(item => {
                 const itemDiv = document.createElement("div");
                 itemDiv.className = "item-container";
-
                 if (item.type === "checkbox") {
                     itemDiv.innerHTML = `<div class="check-item"><input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}><label for="c_${item.id}">${item.label}</label></div>`;
                 } else if (item.type === "radio") {
@@ -80,7 +74,6 @@ function renderSection() {
             });
         });
 
-        // Блок комментариев на подраздел
         const detailDiv = document.createElement("div");
         detailDiv.className = "detail-item";
         detailDiv.innerHTML = `
@@ -116,12 +109,10 @@ function saveState() {
 function calculateRatings() {
     let totalPilotingScores = [];
     let reportHtml = `<div class="rating-summary"><h3>Сводная оценка</h3>`;
-    
     DATA.checklists.forEach(mainSec => {
         let namePilotingScores = [];
         let nameViolations = 0;
         let hasPiloting = false;
-
         mainSec.sections.forEach(sec => {
             const groups = sec.groups || [{ items: sec.items || [] }];
             groups.forEach(g => g.items.forEach(item => {
@@ -134,19 +125,16 @@ function calculateRatings() {
                 }
             }));
         });
-
         let pRes = "-";
         if (hasPiloting) {
             pRes = namePilotingScores.includes(2) ? 2 : Math.round(namePilotingScores.reduce((a,b)=>a+b,0)/namePilotingScores.length);
             totalPilotingScores.push(pRes);
         }
-
         reportHtml += `<div class="rating-block"><b>${mainSec.name}</b><br>
             ${hasPiloting ? `Техника: <span class="score-val">${pRes}</span> | ` : ""}
             Процедуры: <span class="score-val">${nameViolations} нар.</span></div>`;
     });
 
-    // Расчет компетенций
     let compData = {}; 
     DATA.checklists.forEach(mainSec => {
         mainSec.sections.forEach(sec => {
@@ -173,11 +161,9 @@ function calculateRatings() {
             let score = percent > 90 ? 5 : percent >= 81 ? 4 : percent >= 71 ? 3 : 2;
             groupItemScores.push(score);
         });
-
         const groupAvg = groupItemScores.length ? Math.round(groupItemScores.reduce((a,b)=>a+b,0)/groupItemScores.length) : "-";
         reportHtml += `<p>${topName} <span class="score-val">${groupAvg}</span></p>`;
     });
-
     reportHtml += `</div>`;
     return reportHtml;
 }
@@ -207,8 +193,12 @@ function buildReport() {
                 });
             });
 
+            // Исправлено: фото вписывается по ширине контейнера (width: 100%)
             if (sec.note || sec.img) {
-                sDiv.innerHTML += `<div class="report-comment">${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий раздела:</b> ${sec.note}</p>` : ""}${sec.img ? `<img src="${sec.img}" class="report-img">` : ""}</div>`;
+                sDiv.innerHTML += `<div class="report-comment">
+                    ${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий раздела:</b> ${sec.note}</p>` : ""}
+                    ${sec.img ? `<img src="${sec.img}" style="width: 100%; height: auto; display: block; margin-top: 10px; border-radius: 5px;">` : ""}
+                </div>`;
             }
             container.appendChild(sDiv);
         });
@@ -221,7 +211,6 @@ function buildReport() {
     document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 }
 
-// Утилита для сжатия изображений
 function compressImage(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -234,7 +223,7 @@ function compressImage(base64Str) {
             canvas.height = img.height * scale;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.6)); // Сжатие до 60% качества
+            resolve(canvas.toDataURL('image/jpeg', 0.6));
         };
     });
 }
@@ -271,12 +260,10 @@ function finishInspection() {
     initSignature();
 }
 
-// Безопасное сохранение с лимитом и автоочисткой
 function saveToLocalStorage() {
     const key = "checkride_history_v7";
     let history = JSON.parse(localStorage.getItem(key) || "[]");
     const canvas = document.getElementById("signature");
-    
     const entry = {
         fio: document.getElementById("fio").value,
         license: document.getElementById("license").value,
@@ -286,17 +273,13 @@ function saveToLocalStorage() {
         fullData: JSON.parse(JSON.stringify(DATA)),
         signature: (canvas && canvas.style.display !== 'none') ? canvas.toDataURL('image/jpeg', 0.4) : null
     };
-
     history.unshift(entry);
-    if (history.length > 10) history = history.slice(0, 10); // Храним только 10 последних
-
-    // Пытаемся сохранить, удаляя старые записи при ошибке Quota
+    if (history.length > 10) history = history.slice(0, 10);
     while (history.length > 0) {
         try {
             localStorage.setItem(key, JSON.stringify(history));
             break; 
         } catch (e) {
-            console.warn("LocalStorage переполнен, удаляю старую запись...");
             history.pop();
         }
     }
@@ -361,6 +344,7 @@ function exportPDF() {
     window.print();
 }
 
+// ИСПРАВЛЕНО: Фотографии исключены из тела письма
 function sendEmail() {
     const fio = document.getElementById("fio").value;
     const instructor = document.getElementById("instructor").value;
@@ -382,6 +366,7 @@ function sendEmail() {
                     text += `  - ${item.label}: ${status}\n`;
                 });
             });
+            // Включаем только текст комментария
             if(sec.note) text += `  Комментарий к разделу: ${sec.note}\n`;
         });
     });
