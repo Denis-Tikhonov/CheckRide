@@ -19,10 +19,12 @@ async function startInspection() {
         if (!response.ok) throw new Error("Файл не найден");
         DATA = await response.json();
 
+        // Глубокая инициализация полей
         DATA.checklists.forEach(mainSec => {
             mainSec.sections.forEach(sec => {
                 sec.note = "";
                 sec.img = null;
+                // Инициализация внутри новых групп groups
                 const groups = sec.groups || [{ items: sec.items || [] }]; 
                 groups.forEach(group => {
                     group.items.forEach(i => {
@@ -35,7 +37,7 @@ async function startInspection() {
         currentSectionIndex = 0;
         renderSection();
         show('screen-test');
-    } catch (e) { alert("Ошибка загрузки данных: " + e.message); }
+    } catch (e) { console.error(e); alert("Ошибка загрузки данных."); }
 }
 
 function renderSection() {
@@ -47,22 +49,27 @@ function renderSection() {
     itemsBox.innerHTML = "";
 
     mainSection.sections.forEach((sec, secIdx) => {
+        // Подзаголовок (Стандартные процедуры / Компетенции)
         const subHeader = document.createElement("h3");
         subHeader.className = "subname-title";
         subHeader.innerText = sec.subname;
         itemsBox.appendChild(subHeader);
 
         const groups = sec.groups || [{ items: sec.items || [] }];
+
         groups.forEach(group => {
+            // Если есть topitem, рисуем заголовок группы
             if (group.topitem) {
                 const topHeader = document.createElement("h4");
                 topHeader.className = "topitem-title";
                 topHeader.innerText = group.topitem;
                 itemsBox.appendChild(topHeader);
             }
+
             group.items.forEach(item => {
                 const itemDiv = document.createElement("div");
                 itemDiv.className = "item-container";
+
                 if (item.type === "checkbox") {
                     itemDiv.innerHTML = `<div class="check-item"><input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}><label for="c_${item.id}">${item.label}</label></div>`;
                 } else if (item.type === "radio") {
@@ -73,10 +80,11 @@ function renderSection() {
             });
         });
 
+        // Блок комментариев на подраздел
         const detailDiv = document.createElement("div");
         detailDiv.className = "detail-item";
         detailDiv.innerHTML = `
-            <b style="color:var(--red);">Комментарии к разделу: ${sec.subname}</b>
+            <b style="color:var(--red);">Комментарии к: ${sec.subname}</b>
             <textarea id="sec_n_${currentSectionIndex}_${secIdx}" placeholder="Общий комментарий...">${sec.note || ''}</textarea>
             <input type="file" accept="image/*" onchange="handleSectionFile(this, ${currentSectionIndex}, ${secIdx})">
             <div id="sec_p_${currentSectionIndex}_${secIdx}">${sec.img ? `<img src="${sec.img}" width="100">` : ''}</div>`;
@@ -113,6 +121,7 @@ function calculateRatings() {
         let namePilotingScores = [];
         let nameViolations = 0;
         let hasPiloting = false;
+
         mainSec.sections.forEach(sec => {
             const groups = sec.groups || [{ items: sec.items || [] }];
             groups.forEach(g => g.items.forEach(item => {
@@ -125,11 +134,13 @@ function calculateRatings() {
                 }
             }));
         });
+
         let pRes = "-";
         if (hasPiloting) {
             pRes = namePilotingScores.includes(2) ? 2 : Math.round(namePilotingScores.reduce((a,b)=>a+b,0)/namePilotingScores.length);
             totalPilotingScores.push(pRes);
         }
+
         reportHtml += `<div class="rating-block"><b>${mainSec.name}</b><br>
             ${hasPiloting ? `Техника: <span class="score-val">${pRes}</span> | ` : ""}
             Процедуры: <span class="score-val">${nameViolations} нар.</span></div>`;
@@ -162,6 +173,7 @@ function calculateRatings() {
             let score = percent > 90 ? 5 : percent >= 81 ? 4 : percent >= 71 ? 3 : 2;
             groupItemScores.push(score);
         });
+
         const groupAvg = groupItemScores.length ? Math.round(groupItemScores.reduce((a,b)=>a+b,0)/groupItemScores.length) : "-";
         reportHtml += `<p>${topName} <span class="score-val">${groupAvg}</span></p>`;
     });
@@ -173,15 +185,18 @@ function calculateRatings() {
 function buildReport() {
     const container = document.getElementById("report-data");
     container.innerHTML = calculateRatings();
+
     DATA.checklists.forEach(mainSec => {
         const title = document.createElement("h2");
         title.className = "report-main-title";
         title.innerText = mainSec.name;
         container.appendChild(title);
+
         mainSec.sections.forEach(sec => {
             const sDiv = document.createElement("div");
             sDiv.innerHTML = `<h3 class="report-subname">${sec.subname}</h3>`;
             const groups = sec.groups || [{ items: sec.items || [] }];
+            
             groups.forEach(group => {
                 if(group.topitem) sDiv.innerHTML += `<h4 class="report-topitem">${group.topitem}</h4>`;
                 group.items.forEach(item => {
@@ -191,12 +206,14 @@ function buildReport() {
                     sDiv.innerHTML += `<div class="report-item-row"><p>${item.label}</p>${res}</div>`;
                 });
             });
+
             if (sec.note || sec.img) {
-                sDiv.innerHTML += `<div class="report-comment">${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий:</b> ${sec.note}</p>` : ""}${sec.img ? `<img src="${sec.img}" class="report-img">` : ""}</div>`;
+                sDiv.innerHTML += `<div class="report-comment">${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий раздела:</b> ${sec.note}</p>` : ""}${sec.img ? `<img src="${sec.img}" class="report-img">` : ""}</div>`;
             }
             container.appendChild(sDiv);
         });
     });
+
     document.getElementById("r_fio").innerText = document.getElementById("fio").value;
     document.getElementById("r_license").innerText = document.getElementById("license").value;
     document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
@@ -204,12 +221,31 @@ function buildReport() {
     document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 }
 
+// Утилита для сжатия изображений
+function compressImage(base64Str) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = base64Str;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800; 
+            const scale = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.6)); // Сжатие до 60% качества
+        };
+    });
+}
+
 async function handleSectionFile(input, mainIdx, secIdx) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
-        reader.onload = (e) => {
-            DATA.checklists[mainIdx].sections[secIdx].img = e.target.result;
-            document.getElementById(`sec_p_${mainIdx}_${secIdx}`).innerHTML = `<img src="${e.target.result}" width="100">`;
+        reader.onload = async (e) => {
+            const compressed = await compressImage(e.target.result);
+            DATA.checklists[mainIdx].sections[secIdx].img = compressed;
+            document.getElementById(`sec_p_${mainIdx}_${secIdx}`).innerHTML = `<img src="${compressed}" width="100">`;
         };
         reader.readAsDataURL(input.files[0]);
     }
@@ -235,20 +271,35 @@ function finishInspection() {
     initSignature();
 }
 
+// Безопасное сохранение с лимитом и автоочисткой
 function saveToLocalStorage() {
-    const history = JSON.parse(localStorage.getItem("checkride_history_v7") || "[]");
+    const key = "checkride_history_v7";
+    let history = JSON.parse(localStorage.getItem(key) || "[]");
     const canvas = document.getElementById("signature");
+    
     const entry = {
         fio: document.getElementById("fio").value,
         license: document.getElementById("license").value,
-        instructor: document.getElementById("instructor").value, // Исправлено!
+        instructor: document.getElementById("instructor").value,
         date: new Date().toLocaleString(),
         mode: currentMode,
         fullData: JSON.parse(JSON.stringify(DATA)),
-        signature: (canvas && canvas.style.display !== 'none') ? canvas.toDataURL() : null
+        signature: (canvas && canvas.style.display !== 'none') ? canvas.toDataURL('image/jpeg', 0.4) : null
     };
+
     history.unshift(entry);
-    localStorage.setItem("checkride_history_v7", JSON.stringify(history.slice(0, 20)));
+    if (history.length > 10) history = history.slice(0, 10); // Храним только 10 последних
+
+    // Пытаемся сохранить, удаляя старые записи при ошибке Quota
+    while (history.length > 0) {
+        try {
+            localStorage.setItem(key, JSON.stringify(history));
+            break; 
+        } catch (e) {
+            console.warn("LocalStorage переполнен, удаляю старую запись...");
+            history.pop();
+        }
+    }
 }
 
 function showHistory() {
@@ -267,8 +318,8 @@ function viewSavedReport(index) {
     const history = JSON.parse(localStorage.getItem("checkride_history_v7") || "[]");
     const saved = history[index];
     document.getElementById("fio").value = saved.fio;
-    document.getElementById("license").value = saved.license;
     document.getElementById("instructor").value = saved.instructor;
+    document.getElementById("license").value = saved.license;
     currentMode = saved.mode;
     DATA = saved.fullData;
     DATA.savedDate = saved.date;
@@ -304,13 +355,12 @@ function exportPDF() {
     const canvas = document.getElementById("signature");
     const placeholder = document.getElementById("sig-image-placeholder");
     if (canvas && canvas.style.display !== "none") {
-        placeholder.innerHTML = `<img src="${canvas.toDataURL()}" style="width:250px; border-bottom:1px solid #000;">`;
+        placeholder.innerHTML = `<img src="${canvas.toDataURL('image/jpeg', 0.5)}" style="width:250px; border-bottom:1px solid #000;">`;
         canvas.style.display = "none";
     }
     window.print();
 }
 
-// ИСПРАВЛЕНО: Формирование письма
 function sendEmail() {
     const fio = document.getElementById("fio").value;
     const instructor = document.getElementById("instructor").value;
@@ -332,7 +382,7 @@ function sendEmail() {
                     text += `  - ${item.label}: ${status}\n`;
                 });
             });
-            if(sec.note) text += `  Комментарий: ${sec.note}\n`;
+            if(sec.note) text += `  Комментарий к разделу: ${sec.note}\n`;
         });
     });
 
