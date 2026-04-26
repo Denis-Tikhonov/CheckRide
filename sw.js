@@ -1,4 +1,4 @@
-const CACHE_NAME = "checkride-v6-enterprise";
+const CACHE_NAME = "checkride-rating";
 const ASSETS = [
     "./",
     "./index.html",

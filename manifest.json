@@ -1,7 +1,7 @@
 {
-  "name": "CheckRide V5 Enterprise",
+  "name": "CheckRide Rating",
   "short_name": "CheckRide",
-  "description": "Профессиональный инструмент проверки ВС",
+  "description": "Инструмент проверки пилотов на ВС и КТС",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
