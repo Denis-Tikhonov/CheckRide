@@ -18,6 +18,7 @@ async function startInspection() {
         const response = await fetch(file);
         DATA = await response.json();
 
+        // Глубокая инициализация полей
         DATA.checklists.forEach(mainSec => {
             mainSec.sections.forEach(sec => {
                 sec.note = "";
@@ -87,69 +88,21 @@ function renderSection() {
 function saveState() {
     const mainSection = DATA.checklists[currentSectionIndex];
     mainSection.sections.forEach((sec, secIdx) => {
-        sec.items.forEach(item => {
-            if (item.type === "checkbox") {
-                const cb = document.getElementById(`c_${item.id}`);
-                if (cb) item.ok = cb.checked;
-            } else if (item.type === "radio") {
-                const selected = document.querySelector(`input[name="r_${item.id}"]:checked`);
-                item.ok = selected ? selected.value : null;
-            }
+        const groups = sec.groups || [{ items: sec.items || [] }];
+        groups.forEach(group => {
+            group.items.forEach(item => {
+                if (item.type === "checkbox") {
+                    const cb = document.getElementById(`c_${item.id}`);
+                    if (cb) item.ok = cb.checked;
+                } else if (item.type === "radio") {
+                    const selected = document.querySelector(`input[name="r_${item.id}"]:checked`);
+                    item.ok = selected ? selected.value : null;
+                }
+            });
         });
         const nt = document.getElementById(`sec_n_${currentSectionIndex}_${secIdx}`);
         if (nt) sec.note = nt.value;
     });
-}
-
-// НОВАЯ ФУНКЦИЯ: Сжатие фото перед сохранением
-function compressImage(base64Str) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.src = base64Str;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 800; // Ограничиваем ширину для экономии места
-            const scale = MAX_WIDTH / img.width;
-            canvas.width = MAX_WIDTH;
-            canvas.height = img.height * scale;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.6)); // Качество 60%
-        };
-    });
-}
-
-async function handleSectionFile(input, mainIdx, secIdx) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            // Сжимаем изображение сразу после выбора
-            const compressedB64 = await compressImage(e.target.result);
-            DATA.checklists[mainIdx].sections[secIdx].img = compressedB64;
-            document.getElementById(`sec_p_${mainIdx}_${secIdx}`).innerHTML = `<img src="${compressedB64}" width="100">`;
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-function nextSection() { saveState(); currentSectionIndex++; renderSection(); }
-function prevSection() { saveState(); currentSectionIndex--; renderSection(); }
-
-function updateNav() {
-    const isFirst = currentSectionIndex === 0;
-    const isLast = currentSectionIndex === DATA.checklists.length - 1;
-    document.getElementById("btn-prev").style.display = isFirst ? "none" : "block";
-    document.getElementById("btn-next").style.display = isLast ? "none" : "block";
-    document.getElementById("btn-finish").classList.toggle("hidden", !isLast);
-    window.scrollTo(0,0);
-}
-
-function finishInspection() {
-    saveState();
-    buildReport();
-    saveToLocalStorage();
-    show("screen-report");
-    initSignature();
 }
 
 function calculateRatings() {
@@ -158,6 +111,7 @@ function calculateRatings() {
         let namePilotingScores = [];
         let nameViolations = 0;
         let hasPiloting = false;
+
         mainSec.sections.forEach(sec => {
             const groups = sec.groups || [{ items: sec.items || [] }];
             groups.forEach(group => {
@@ -173,10 +127,12 @@ function calculateRatings() {
                 });
             });
         });
+
         let pilotingResult = "-";
         if (hasPiloting) {
             pilotingResult = namePilotingScores.includes(2) ? 2 : Math.round(namePilotingScores.reduce((a,b)=>a+b,0)/namePilotingScores.length);
         }
+
         reportHtml += `<div class="rating-block"><b>${mainSec.name}</b><br>
             ${hasPiloting ? `Техника: <span class="score-val">${pilotingResult}</span> | ` : ""}
             Процедуры: <span class="score-val">${nameViolations} нар.</span></div>`;
@@ -211,6 +167,7 @@ function calculateRatings() {
         const groupAvg = groupItemScores.length ? Math.round(groupItemScores.reduce((a,b)=>a+b,0)/groupItemScores.length) : "-";
         reportHtml += `<p>${topName} <span class="score-val">${groupAvg}</span></p>`;
     });
+
     reportHtml += `</div>`;
     return reportHtml;
 }
@@ -218,15 +175,18 @@ function calculateRatings() {
 function buildReport() {
     const container = document.getElementById("report-data");
     container.innerHTML = calculateRatings();
+
     DATA.checklists.forEach(mainSec => {
         const title = document.createElement("h2");
         title.className = "report-main-title";
         title.innerText = mainSec.name;
         container.appendChild(title);
+
         mainSec.sections.forEach(sec => {
             const sDiv = document.createElement("div");
             sDiv.innerHTML = `<h3 class="report-subname">${sec.subname}</h3>`;
             const groups = sec.groups || [{ items: sec.items || [] }];
+            
             groups.forEach(group => {
                 if(group.topitem) sDiv.innerHTML += `<h4 class="report-topitem">${group.topitem}</h4>`;
                 group.items.forEach(item => {
@@ -236,12 +196,14 @@ function buildReport() {
                     sDiv.innerHTML += `<div class="report-item-row"><p>${item.label}</p>${res}</div>`;
                 });
             });
+
             if (sec.note || sec.img) {
-                sDiv.innerHTML += `<div class="report-comment">${sec.note || ''}${sec.img ? `<img src="${sec.img}" class="report-img">` : ""}</div>`;
+                sDiv.innerHTML += `<div class="report-comment">${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий раздела:</b> ${sec.note}</p>` : ""}${sec.img ? `<img src="${sec.img}" class="report-img">` : ""}</div>`;
             }
             container.appendChild(sDiv);
         });
     });
+
     document.getElementById("r_fio").innerText = document.getElementById("fio").value;
     document.getElementById("r_license").innerText = document.getElementById("license").value;
     document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
@@ -249,12 +211,40 @@ function buildReport() {
     document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 }
 
-// ИСПРАВЛЕНО: Безопасное сохранение с защитой от Quota Exceeded
+async function handleSectionFile(input, mainIdx, secIdx) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            DATA.checklists[mainIdx].sections[secIdx].img = e.target.result;
+            document.getElementById(`sec_p_${mainIdx}_${secIdx}`).innerHTML = `<img src="${e.target.result}" width="100">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function nextSection() { saveState(); currentSectionIndex++; renderSection(); }
+function prevSection() { saveState(); currentSectionIndex--; renderSection(); }
+
+function updateNav() {
+    const isFirst = currentSectionIndex === 0;
+    const isLast = currentSectionIndex === DATA.checklists.length - 1;
+    document.getElementById("btn-prev").style.display = isFirst ? "none" : "block";
+    document.getElementById("btn-next").style.display = isLast ? "none" : "block";
+    document.getElementById("btn-finish").classList.toggle("hidden", !isLast);
+    window.scrollTo(0,0);
+}
+
+function finishInspection() {
+    saveState();
+    buildReport();
+    saveToLocalStorage();
+    show("screen-report");
+    initSignature();
+}
+
 function saveToLocalStorage() {
-    const historyKey = "checkride_history_v7";
-    let history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+    const history = JSON.parse(localStorage.getItem("checkride_history_v7") || "[]");
     const canvas = document.getElementById("signature");
-    
     const entry = {
         fio: document.getElementById("fio").value,
         license: document.getElementById("license").value,
@@ -262,23 +252,10 @@ function saveToLocalStorage() {
         date: new Date().toLocaleString(),
         mode: currentMode,
         fullData: JSON.parse(JSON.stringify(DATA)),
-        signature: (canvas && canvas.style.display !== 'none') ? canvas.toDataURL('image/jpeg', 0.5) : null
+        signature: (canvas && canvas.style.display !== 'none') ? canvas.toDataURL() : null
     };
-
     history.unshift(entry);
-    if (history.length > 15) history.pop(); // Ограничиваем историю до 15 записей
-
-    // Пробуем сохранить. Если не лезет — удаляем старые, пока не влезет.
-    let success = false;
-    while (!success && history.length > 0) {
-        try {
-            localStorage.setItem(historyKey, JSON.stringify(history));
-            success = true;
-        } catch (e) {
-            console.warn("LocalStorage забит, удаляю старую запись...");
-            history.pop();
-        }
-    }
+    localStorage.setItem("checkride_history_v7", JSON.stringify(history.slice(0, 20)));
 }
 
 function showHistory() {
@@ -298,7 +275,10 @@ function viewSavedReport(index) {
     const saved = history[index];
     document.getElementById("fio").value = saved.fio;
     document.getElementById("instructor").value = saved.instructor;
-    currentMode = saved.mode; DATA = saved.fullData; DATA.savedDate = saved.date;
+    document.getElementById("license").value = saved.license;
+    currentMode = saved.mode;
+    DATA = saved.fullData;
+    DATA.savedDate = saved.date;
     buildReport();
     const placeholder = document.getElementById("sig-image-placeholder");
     const canvas = document.getElementById("signature");
@@ -331,18 +311,74 @@ function exportPDF() {
     const canvas = document.getElementById("signature");
     const placeholder = document.getElementById("sig-image-placeholder");
     if (canvas && canvas.style.display !== "none") {
-        placeholder.innerHTML = `<img src="${canvas.toDataURL('image/jpeg', 0.5)}" style="width:250px; border-bottom:1px solid #000;">`;
+        placeholder.innerHTML = `<img src="${canvas.toDataURL()}" style="width:250px; border-bottom:1px solid #000;">`;
         canvas.style.display = "none";
     }
     window.print();
 }
 
+// ИСПРАВЛЕННОЕ ФОРМИРОВАНИЕ ПИСЬМА ПО ОБРАЗЦУ MAIL
 function sendEmail() {
     const fio = document.getElementById("fio").value;
+    const instructor = document.getElementById("instructor").value;
     const date = document.getElementById("r_date").innerText;
+    const mode = currentMode.toUpperCase();
+
+    let text = `ОТЧЕТ ПО ПРОВЕРКЕ\n`;
+    text += `---------------------------\n`;
+    text += `Проверяемый: ${fio}\n`;
+    text += `Инструктор: ${instructor}\n`;
+    text += `Режим: ${mode}\n`;
+    text += `Дата: ${date}\n\n`;
+
+    text += `РЕЗУЛЬТАТЫ ОЦЕНКИ:\n`;
+    
+    // Пересчитываем оценки для текста письма
+    DATA.checklists.forEach(mainSec => {
+        let pilScores = [];
+        let violations = 0;
+        let hasPil = false;
+
+        mainSec.sections.forEach(sec => {
+            const groups = sec.groups || [{ items: sec.items || [] }];
+            groups.forEach(g => g.items.forEach(item => {
+                if (item.type === "radio") {
+                    hasPil = true;
+                    let s = item.ok ? (5 - item.options.indexOf(item.ok)) : 2;
+                    pilScores.push(s < 2 ? 2 : s);
+                } else if (item.type === "checkbox" && sec.subname !== "Компетенции.") {
+                    if (!item.ok) violations++;
+                }
+            }));
+        });
+
+        let pRes = "-";
+        if (hasPil) {
+            pRes = pilScores.includes(2) ? 2 : Math.round(pilScores.reduce((a,b)=>a+b,0)/pilScores.length);
+        }
+        text += `- ${mainSec.name}: Техника [${pRes}], Процедуры [${violations} нар.]\n`;
+    });
+
+    text += `\nДЕТАЛИЗАЦИЯ ПО ПУНКТАМ:\n`;
+    DATA.checklists.forEach(mainSec => {
+        text += `\n=== ${mainSec.name.toUpperCase()} ===\n`;
+        mainSec.sections.forEach(sec => {
+            text += `[ ${sec.subname} ]\n`;
+            const groups = sec.groups || [{ items: sec.items || [] }];
+            groups.forEach(g => {
+                if(g.topitem) text += `* ${g.topitem}\n`;
+                g.items.forEach(item => {
+                    let status = item.type === "checkbox" ? (item.ok ? "OK" : "НАРУШЕНИЕ") : (item.ok || "НЕ ВЫБРАНО");
+                    text += `  - ${item.label}: ${status}\n`;
+                });
+            });
+            if(sec.note) text += `  Комментарий к разделу: ${sec.note}\n`;
+        });
+    });
+
     const subject = encodeURIComponent(`Отчет Checkride: ${fio} - ${date}`);
-    const body = encodeURIComponent(`Отчет сформирован в системе CheckRide. Используйте функцию Печать для сохранения в PDF.`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    const mailBody = encodeURIComponent(text);
+    window.location.href = `mailto:?subject=${subject}&body=${mailBody}`;
 }
 
 function show(id) {
