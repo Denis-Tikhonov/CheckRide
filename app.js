@@ -11,7 +11,7 @@ function setMode(mode) {
 async function startInspection() {
     const fio = document.getElementById("fio").value;
     const instructor = document.getElementById("instructor").value;
-    if (!fio || !instructor) return alert("Заполните ФИО проверяемого и проверяющего");
+    if (!fio || !instructor) return alert("Заполните ФИО проверяемого и ФИО проверяющего");
 
     const file = currentMode === 'line' ? 'data.json' : 'data_ffs.json';
     try {
@@ -115,9 +115,7 @@ function saveState() {
 function calculateRatings() {
     let reportHtml = `<div class="rating-summary"><h3>Сводная оценка</h3>`;
     
-    // 1. ТЕХНИКА И ПРОЦЕДУРЫ (Расчет по этапам)
-    let totalPilotingScores = [];
-    
+    // 1. ТЕХНИКА И ПРОЦЕДУРЫ
     DATA.checklists.forEach(mainSec => {
         let namePilotingScores = [];
         let nameViolations = 0;
@@ -142,7 +140,6 @@ function calculateRatings() {
         let pilotingResult = "-";
         if (hasPiloting) {
             pilotingResult = namePilotingScores.includes(2) ? 2 : Math.round(namePilotingScores.reduce((a,b)=>a+b,0)/namePilotingScores.length);
-            totalPilotingScores.push(pilotingResult);
         }
 
         reportHtml += `<div class="rating-block"><b>${mainSec.name}</b><br>
@@ -150,9 +147,8 @@ function calculateRatings() {
             Процедуры: <span class="score-val">${nameViolations} нар.</span></div>`;
     });
 
-    // 2. КОМПЕТЕНЦИИ (Расчет по уникальным пунктам)
-    let compData = {}; // { topitem: { label: { ok: 0, total: 0 } } }
-
+    // 2. КОМПЕТЕНЦИИ
+    let compData = {}; 
     DATA.checklists.forEach(mainSec => {
         mainSec.sections.forEach(sec => {
             if (sec.subname === "Компетенции." && sec.groups) {
@@ -169,8 +165,7 @@ function calculateRatings() {
         });
     });
 
-    reportHtml += `<hr><h4>Компетенции (среднее по ПП/РУ)</h4>`;
-
+    reportHtml += `<hr><h4>Компетенции</h4>`;
     Object.keys(compData).forEach(topName => {
         let groupItemScores = [];
         Object.keys(compData[topName]).forEach(label => {
@@ -182,7 +177,6 @@ function calculateRatings() {
             else if (percent >= 71) score = 3;
             groupItemScores.push(score);
         });
-
         const groupAvg = groupItemScores.length ? Math.round(groupItemScores.reduce((a,b)=>a+b,0)/groupItemScores.length) : "-";
         reportHtml += `<p>${topName} <span class="score-val">${groupAvg}</span></p>`;
     });
@@ -229,8 +223,6 @@ function buildReport() {
     document.getElementById("r_date").innerText = DATA.savedDate || new Date().toLocaleString();
     document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 }
-
-// --- Остальные функции (handleSectionFile, updateNav, finishInspection, saveToLocalStorage, showHistory, viewSavedReport, clearHistory, exportPDF, initSignature, show, resetApp, sendEmail) остаются без изменений из предыдущего кода ---
 
 async function handleSectionFile(input, mainIdx, secIdx) {
     if (input.files && input.files[0]) {
@@ -295,6 +287,7 @@ function viewSavedReport(index) {
     const history = JSON.parse(localStorage.getItem("checkride_history_v7") || "[]");
     const saved = history[index];
     document.getElementById("fio").value = saved.fio;
+    document.getElementById("license").value = saved.license;
     document.getElementById("instructor").value = saved.instructor;
     currentMode = saved.mode;
     DATA = saved.fullData;
@@ -337,10 +330,66 @@ function exportPDF() {
     window.print();
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ: Формирование отчета для Email
 function sendEmail() {
     const fio = document.getElementById("fio").value;
+    const instructor = document.getElementById("instructor").value;
     const date = document.getElementById("r_date").innerText;
-    window.location.href = `mailto:?subject=Checkride Report: ${fio} - ${date}&body=Отчет сформирован в системе CheckRide.`;
+    const mode = currentMode.toUpperCase();
+
+    let text = `ОТЧЕТ ПО ПРОВЕРКЕ\n`;
+    text += `---------------------------\n`;
+    text += `Проверяемый: ${fio}\n`;
+    text += `Инструктор: ${instructor}\n`;
+    text += `Режим: ${mode}\n`;
+    text += `Дата: ${date}\n\n`;
+
+    text += `СВОДНАЯ ОЦЕНКА:\n`;
+    DATA.checklists.forEach(mainSec => {
+        let pilScores = [];
+        let violations = 0;
+        let hasPil = false;
+
+        mainSec.sections.forEach(sec => {
+            const groups = sec.groups || [{ items: sec.items || [] }];
+            groups.forEach(g => g.items.forEach(item => {
+                if (item.type === "radio") {
+                    hasPil = true;
+                    let s = item.ok ? (5 - item.options.indexOf(item.ok)) : 2;
+                    pilScores.push(s < 2 ? 2 : s);
+                } else if (item.type === "checkbox" && sec.subname !== "Компетенции.") {
+                    if (!item.ok) violations++;
+                }
+            }));
+        });
+
+        let pRes = "-";
+        if (hasPil) {
+            pRes = pilScores.includes(2) ? 2 : Math.round(pilScores.reduce((a,b)=>a+b,0)/pilScores.length);
+        }
+        text += `- ${mainSec.name}: Техника [${pRes}], Процедуры [${violations} нар.]\n`;
+    });
+
+    text += `\nДЕТАЛИЗАЦИЯ:\n`;
+    DATA.checklists.forEach(mainSec => {
+        text += `\n=== ${mainSec.name.toUpperCase()} ===\n`;
+        mainSec.sections.forEach(sec => {
+            text += `[ ${sec.subname} ]\n`;
+            const groups = sec.groups || [{ items: sec.items || [] }];
+            groups.forEach(g => {
+                if(g.topitem) text += `* ${g.topitem}\n`;
+                g.items.forEach(item => {
+                    let status = item.type === "checkbox" ? (item.ok ? "OK" : "НАРУШЕНИЕ") : (item.ok || "НЕ ВЫБРАНО");
+                    text += `  - ${item.label}: ${status}\n`;
+                });
+            });
+            if(sec.note) text += `  Комментарий к блоку: ${sec.note}\n`;
+        });
+    });
+
+    const subject = encodeURIComponent(`Отчет Checkride: ${fio} - ${date}`);
+    const mailBody = encodeURIComponent(text);
+    window.location.href = `mailto:?subject=${subject}&body=${mailBody}`;
 }
 
 function show(id) {
