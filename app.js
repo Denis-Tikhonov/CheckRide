@@ -48,12 +48,14 @@ function renderSection() {
     itemsBox.innerHTML = "";
 
     mainSection.sections.forEach((sec, secIdx) => {
+        // Подзаголовок (Стандартные процедуры / Компетенции)
         const subHeader = document.createElement("h3");
         subHeader.className = "subname-title";
         subHeader.innerText = sec.subname;
         itemsBox.appendChild(subHeader);
 
         const groups = sec.groups || [{ items: sec.items || [] }];
+
         groups.forEach(group => {
             if (group.topitem) {
                 const topHeader = document.createElement("h4");
@@ -61,9 +63,11 @@ function renderSection() {
                 topHeader.innerText = group.topitem;
                 itemsBox.appendChild(topHeader);
             }
+
             group.items.forEach(item => {
                 const itemDiv = document.createElement("div");
                 itemDiv.className = "item-container";
+
                 if (item.type === "checkbox") {
                     itemDiv.innerHTML = `<div class="check-item"><input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}><label for="c_${item.id}">${item.label}</label></div>`;
                 } else if (item.type === "radio") {
@@ -74,14 +78,17 @@ function renderSection() {
             });
         });
 
-        const detailDiv = document.createElement("div");
-        detailDiv.className = "detail-item";
-        detailDiv.innerHTML = `
-            <b style="color:var(--red);">Комментарии к: ${sec.subname}</b>
-            <textarea id="sec_n_${currentSectionIndex}_${secIdx}" placeholder="Общий комментарий...">${sec.note || ''}</textarea>
-            <input type="file" accept="image/*" onchange="handleSectionFile(this, ${currentSectionIndex}, ${secIdx})">
-            <div id="sec_p_${currentSectionIndex}_${secIdx}">${sec.img ? `<img src="${sec.img}" width="100">` : ''}</div>`;
-        itemsBox.appendChild(detailDiv);
+        // ТОЧЕЧНОЕ ИЗМЕНЕНИЕ: Убираем блок комментариев, если это подраздел "Компетенции."
+        if (sec.subname !== "Компетенции.") {
+            const detailDiv = document.createElement("div");
+            detailDiv.className = "detail-item";
+            detailDiv.innerHTML = `
+                <b style="color:var(--red);">Комментарии к: ${sec.subname}</b>
+                <textarea id="sec_n_${currentSectionIndex}_${secIdx}" placeholder="Общий комментарий...">${sec.note || ''}</textarea>
+                <input type="file" accept="image/*" onchange="handleSectionFile(this, ${currentSectionIndex}, ${secIdx})">
+                <div id="sec_p_${currentSectionIndex}_${secIdx}">${sec.img ? `<img src="${sec.img}" width="100">` : ''}</div>`;
+            itemsBox.appendChild(detailDiv);
+        }
     });
     updateNav();
 }
@@ -193,7 +200,6 @@ function buildReport() {
                 });
             });
 
-            // Исправлено: фото вписывается по ширине контейнера (width: 100%)
             if (sec.note || sec.img) {
                 sDiv.innerHTML += `<div class="report-comment">
                     ${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий раздела:</b> ${sec.note}</p>` : ""}
@@ -344,7 +350,6 @@ function exportPDF() {
     window.print();
 }
 
-// ИСПРАВЛЕНО: Фотографии исключены из тела письма
 function sendEmail() {
     const fio = document.getElementById("fio").value;
     const instructor = document.getElementById("instructor").value;
@@ -366,7 +371,6 @@ function sendEmail() {
                     text += `  - ${item.label}: ${status}\n`;
                 });
             });
-            // Включаем только текст комментария
             if(sec.note) text += `  Комментарий к разделу: ${sec.note}\n`;
         });
     });
