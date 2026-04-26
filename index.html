@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Checkride Rating</title>
+    <title>CheckRide Rating</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Локальное подключение библиотеки -->
-    <script src="html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -34,9 +32,6 @@
     <section id="screen-test" class="screen hidden">
         <h2 id="section-title"></h2>
         <div id="checklist-items"></div>
-        <hr class="separator">
-        <h3 class="sub-title">Комментарии и фото к блоку</h3>
-        <div id="checklist-details"></div>
         <div class="navigation-controls">
             <button id="btn-prev" class="nav-button" onclick="prevSection()">← Назад</button>
             <button id="btn-next" class="nav-button" onclick="nextSection()">Далее →</button>
@@ -62,7 +57,7 @@
             </div>
         </div>
         <div class="no-print">
-            <button class="main-btn" id="pdf-btn" onclick="exportPDF()">Скачать PDF</button>
+            <button class="main-btn" onclick="exportPDF()">Печать / Сохранить в PDF</button>
             <button class="secondary-btn" onclick="sendEmail()">Отправить по почте</button>
             <button class="secondary-btn" onclick="resetApp()">На главную</button>
         </div>

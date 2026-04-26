@@ -18,12 +18,14 @@ async function startInspection() {
         const response = await fetch(file);
         DATA = await response.json();
 
+        // Инициализация структуры
         DATA.checklists.forEach(mainSec => {
             mainSec.sections.forEach(sec => {
+                // Комментарий и фото теперь на уровне СЕКЦИИ
+                sec.note = "";
+                sec.img = null;
                 sec.items.forEach(i => {
-                    i.ok = (i.type === "radio") ? false : false; 
-                    i.note = ""; 
-                    i.img = null;
+                    i.ok = (i.type === "radio") ? null : false; 
                 });
             });
         });
@@ -31,25 +33,26 @@ async function startInspection() {
         currentSectionIndex = 0;
         renderSection();
         show('screen-test');
-    } catch (e) { alert("Ошибка загрузки данных. Проверьте JSON."); }
+    } catch (e) { alert("Ошибка загрузки данных."); }
 }
 
 function renderSection() {
     const mainSection = DATA.checklists[currentSectionIndex];
     const itemsBox = document.getElementById("checklist-items");
-    const detailsBox = document.getElementById("checklist-details");
+    const detailsBox = document.getElementById("checklist-details"); // Теперь не используется отдельно, детали внутри itemsBox
     const titleEl = document.getElementById("section-title");
 
     titleEl.innerText = mainSection.name;
     itemsBox.innerHTML = "";
-    detailsBox.innerHTML = "";
 
-    mainSection.sections.forEach(sec => {
+    mainSection.sections.forEach((sec, secIdx) => {
+        // Заголовок подраздела
         const subHeader = document.createElement("h3");
         subHeader.className = "subname-title";
         subHeader.innerText = sec.subname;
         itemsBox.appendChild(subHeader);
 
+        // Пункты подраздела
         sec.items.forEach(item => {
             const itemDiv = document.createElement("div");
             itemDiv.className = "item-container";
@@ -67,51 +70,51 @@ function renderSection() {
                         <span>${opt}</span>
                     </label>
                 `).join("");
-                
                 itemDiv.innerHTML = `<div class="radio-group"><p class="radio-label"><b>${item.label}</b></p>${radioOptions}</div>`;
             }
             itemsBox.appendChild(itemDiv);
-
-            const detailDiv = document.createElement("div");
-            detailDiv.className = "detail-item";
-            detailDiv.innerHTML = `
-                <b style="font-size:11px; color:var(--dark-grey);">${item.label}</b>
-                <textarea id="n_${item.id}" placeholder="Комментарий...">${item.note || ''}</textarea>
-                <input type="file" accept="image/*" onchange="handleFile(this, '${item.id}')">
-                <div id="p_${item.id}">${item.img ? `<img src="${item.img}" width="70" style="margin-top:5px;">` : ''}</div>
-            `;
-            detailsBox.appendChild(detailDiv);
         });
+
+        // ОДИН блок комментариев на весь подраздел (Subname)
+        const detailDiv = document.createElement("div");
+        detailDiv.className = "detail-item";
+        detailDiv.innerHTML = `
+            <b style="color:var(--red);">Комментарии к разделу: ${sec.subname}</b>
+            <textarea id="sec_n_${currentSectionIndex}_${secIdx}" placeholder="Общий комментарий к блоку...">${sec.note || ''}</textarea>
+            <input type="file" accept="image/*" onchange="handleSectionFile(this, ${currentSectionIndex}, ${secIdx})">
+            <div id="sec_p_${currentSectionIndex}_${secIdx}">${sec.img ? `<img src="${sec.img}" width="100" style="margin-top:5px;">` : ''}</div>
+        `;
+        itemsBox.appendChild(detailDiv);
     });
     updateNav();
 }
 
 function saveState() {
     const mainSection = DATA.checklists[currentSectionIndex];
-    mainSection.sections.forEach(sec => {
+    mainSection.sections.forEach((sec, secIdx) => {
+        // Сохраняем состояние пунктов
         sec.items.forEach(item => {
             if (item.type === "checkbox") {
                 const cb = document.getElementById(`c_${item.id}`);
                 if (cb) item.ok = cb.checked;
             } else if (item.type === "radio") {
                 const selected = document.querySelector(`input[name="r_${item.id}"]:checked`);
-                item.ok = selected ? selected.value : false;
+                item.ok = selected ? selected.value : null;
             }
-            const nt = document.getElementById(`n_${item.id}`);
-            if (nt) item.note = nt.value;
         });
+        // Сохраняем общий комментарий секции
+        const nt = document.getElementById(`sec_n_${currentSectionIndex}_${secIdx}`);
+        if (nt) sec.note = nt.value;
     });
 }
 
-async function handleFile(input, id) {
+async function handleSectionFile(input, mainIdx, secIdx) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
             const b64 = e.target.result;
-            DATA.checklists.forEach(m => m.sections.forEach(s => s.items.forEach(i => {
-                if(i.id === id) i.img = b64;
-            })));
-            document.getElementById(`p_${id}`).innerHTML = `<img src="${b64}" width="70" style="margin-top:5px;">`;
+            DATA.checklists[mainIdx].sections[secIdx].img = b64;
+            document.getElementById(`sec_p_${mainIdx}_${secIdx}`).innerHTML = `<img src="${b64}" width="100" style="margin-top:5px;">`;
         };
         reader.readAsDataURL(input.files[0]);
     }
@@ -126,6 +129,7 @@ function updateNav() {
     document.getElementById("btn-prev").style.display = isFirst ? "none" : "block";
     document.getElementById("btn-next").style.display = isLast ? "none" : "block";
     document.getElementById("btn-finish").classList.toggle("hidden", !isLast);
+    window.scrollTo(0,0);
 }
 
 function finishInspection() {
@@ -136,9 +140,78 @@ function finishInspection() {
     initSignature();
 }
 
+// --- ЛОГИКА РАСЧЕТА ОЦЕНОК ---
+function calculateRatings() {
+    let totalPilotingScores = [];
+    let reportHtml = `<div class="rating-summary"><h3>Результаты оценки:</h3>`;
+
+    DATA.checklists.forEach(mainSec => {
+        let namePilotingScores = [];
+        let nameViolations = 0;
+        let hasPiloting = false;
+
+        mainSec.sections.forEach(sec => {
+            sec.items.forEach(item => {
+                if (item.type === "radio") {
+                    hasPiloting = true;
+                    let score = 2; // По умолчанию, если не выбран
+                    if (item.ok) {
+                        const idx = item.options.indexOf(item.ok);
+                        score = 5 - idx; // 0->5, 1->4, 2->3...
+                        if (score < 2) score = 2;
+                    }
+                    namePilotingScores.push(score);
+                } else if (item.type === "checkbox") {
+                    if (!item.ok) nameViolations++;
+                }
+            });
+        });
+
+        // Расчет Техники для конкретного name
+        let namePilotingResult = "-";
+        if (hasPiloting) {
+            if (namePilotingScores.includes(2)) {
+                namePilotingResult = 2;
+            } else {
+                const avg = namePilotingScores.reduce((a, b) => a + b, 0) / namePilotingScores.length;
+                namePilotingResult = Math.round(avg);
+            }
+            totalPilotingScores.push(namePilotingResult);
+        }
+
+        reportHtml += `
+            <div style="margin-bottom:10px; border-left:3px solid var(--red); padding-left:10px;">
+                <b>${mainSec.name}</b><br>
+                ${hasPiloting ? `Техника пилотирования: <span class="score-val">${namePilotingResult}</span><br>` : ""}
+                Стандартные процедуры: <span class="score-val">${nameViolations} замеч.</span>
+            </div>`;
+    });
+
+    // Итоговая оценка по Технике Пилотирования
+    let finalPiloting = "-";
+    if (totalPilotingScores.length > 0) {
+        if (totalPilotingScores.includes(2)) finalPiloting = 2;
+        else {
+            const finalAvg = totalPilotingScores.reduce((a, b) => a + b, 0) / totalPilotingScores.length;
+            finalPiloting = Math.round(finalAvg);
+        }
+    }
+
+    reportHtml += `<hr>
+        <p><b>Итоговая техника пилотирования: <span class="score-val">${finalPiloting}</span></b></p>
+        <p><b>Компетенции:</b> <span style="color:grey;">В разработке...</span></p>
+    </div>`;
+
+    return reportHtml;
+}
+
 function buildReport() {
     const container = document.getElementById("report-data");
     container.innerHTML = "";
+
+    // Вставляем блок оценок в начало
+    container.innerHTML = calculateRatings();
+
     DATA.checklists.forEach(mainSec => {
         const mainTitle = document.createElement("h2");
         mainTitle.style.cssText = "color:var(--red); margin-top:25px; border-bottom:2px solid var(--red); padding-bottom:5px;";
@@ -146,24 +219,28 @@ function buildReport() {
         container.appendChild(mainTitle);
 
         mainSec.sections.forEach(sec => {
-            if (sec.items.length > 0) {
-                const subTitle = document.createElement("h3");
-                subTitle.style.cssText = "background:#f4f4f4; padding:5px 10px; margin:15px 0 10px 0; font-size:16px; border-left:4px solid var(--red);";
-                subTitle.innerText = sec.subname;
-                container.appendChild(subTitle);
-            }
+            const sDiv = document.createElement("div");
+            sDiv.innerHTML = `<h3 style="background:#f4f4f4; padding:5px 10px; margin:15px 0 5px 0; font-size:16px;">${sec.subname}</h3>`;
+            
             sec.items.forEach(item => {
-                const itemDiv = document.createElement("div");
-                itemDiv.style.cssText = "margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid #f0f0f0;";
                 let res = item.type === "checkbox" ? 
-                    `<div class="flex-row"><div class="box">${item.ok ? 'X' : ''}</div><span style="font-size:14px; margin-left:8px;">Статус: ${item.ok ? 'OK' : 'Нарушение'}</span></div>` :
+                    `<div class="flex-row"><div class="box">${item.ok ? 'X' : ''}</div><span>Статус: ${item.ok ? 'OK' : 'Нарушение'}</span></div>` :
                     `<div style="font-size:14px; margin:5px 0;"><b>Выбрано:</b> ${item.ok || 'Не выбрано'}</div>`;
-
-                itemDiv.innerHTML = `<p style="margin:5px 0;"><b>${item.label}</b></p>${res}<p style="font-size:13px; color:#555;">Коммент: ${item.note || '-'}</p>${item.img ? `<img src="${item.img}" style="max-width:300px; display:block; margin-top:10px;">` : ''}`;
-                container.appendChild(itemDiv);
+                sDiv.innerHTML += `<div style="margin-bottom:8px; border-bottom:1px solid #f0f0f0;"><p style="margin:5px 0;"><b>${item.label}</b></p>${res}</div>`;
             });
+
+            // Вывод ОБЩЕГО комментария подраздела в отчет
+            if (sec.note || sec.img) {
+                sDiv.innerHTML += `
+                    <div style="background:#fff9f9; padding:8px; margin-top:5px; border:1px solid #ffebeb;">
+                        ${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий раздела:</b> ${sec.note}</p>` : ""}
+                        ${sec.img ? `<img src="${sec.img}" style="max-width:250px; display:block; margin-top:5px;">` : ""}
+                    </div>`;
+            }
+            container.appendChild(sDiv);
         });
     });
+
     document.getElementById("r_fio").innerText = document.getElementById("fio").value;
     document.getElementById("r_license").innerText = document.getElementById("license").value;
     document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
@@ -171,74 +248,8 @@ function buildReport() {
     document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 }
 
-function exportPDF() {
-    const btn = document.getElementById("pdf-btn");
-    const canvas = document.getElementById("signature");
-    const placeholder = document.getElementById("sig-image-placeholder");
-
-    btn.innerText = "Генерация...";
-    btn.disabled = true;
-
-    if (canvas.style.display !== "none") {
-        placeholder.innerHTML = `<img src="${canvas.toDataURL()}" style="width:250px; border-bottom:1px solid #000;">`;
-        canvas.style.display = "none";
-    }
-
-    const element = document.getElementById("report-content");
-    const opt = {
-        margin: 5,
-        filename: 'Report.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    setTimeout(() => {
-        html2pdf().set(opt).from(element).save().then(() => {
-            btn.innerText = "Скачать PDF";
-            btn.disabled = false;
-        }).catch(err => {
-            alert("Ошибка PDF: " + err);
-            btn.disabled = false;
-        });
-    }, 500);
-}
-
-// Новая функция: Отправка по почте
-function sendEmail() {
-    const fio = document.getElementById("fio").value;
-    const instructor = document.getElementById("instructor").value;
-    const date = document.getElementById("r_date").innerText;
-    const mode = currentMode.toUpperCase();
-
-    let body = `ОТЧЕТ ПО ПРОВЕРКЕ\n`;
-    body += `---------------------------\n`;
-    body += `Проверяемый: ${fio}\n`;
-    body += `Инструктор: ${instructor}\n`;
-    body += `Дата: ${date}\n`;
-    body += `Режим: ${mode}\n\n`;
-
-    DATA.checklists.forEach(mainSec => {
-        body += `=== ${mainSec.name.toUpperCase()} ===\n`;
-        mainSec.sections.forEach(sec => {
-            if (sec.items.length > 0) body += `[${sec.subname}]\n`;
-            sec.items.forEach(item => {
-                const status = item.type === "checkbox" ? (item.ok ? "OK" : "НАРУШЕНИЕ") : (item.ok || "Не выбрано");
-                body += `- ${item.label}: ${status}\n`;
-                if (item.note) body += `  Комментарий: ${item.note}\n`;
-            });
-            body += `\n`;
-        });
-    });
-
-    const subject = encodeURIComponent(`Отчет CheckRide: ${fio} - ${date}`);
-    const mailBody = encodeURIComponent(body);
-    
-    window.location.href = `mailto:?subject=${subject}&body=${mailBody}`;
-}
-
 function saveToLocalStorage() {
-    const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
+    const history = JSON.parse(localStorage.getItem("checkride_history_v6") || "[]");
     const canvas = document.getElementById("signature");
     const entry = {
         fio: document.getElementById("fio").value,
@@ -247,40 +258,45 @@ function saveToLocalStorage() {
         date: new Date().toLocaleString(),
         mode: currentMode,
         fullData: JSON.parse(JSON.stringify(DATA)),
-        signature: canvas ? canvas.toDataURL() : null
+        signature: (canvas && canvas.style.display !== 'none') ? canvas.toDataURL() : null
     };
     history.unshift(entry);
-    localStorage.setItem("checkride_history_v5", JSON.stringify(history.slice(0, 25)));
+    localStorage.setItem("checkride_history_v6", JSON.stringify(history.slice(0, 20)));
 }
 
 function showHistory() {
-    const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
+    const history = JSON.parse(localStorage.getItem("checkride_history_v6") || "[]");
     const box = document.getElementById("historyList");
     box.innerHTML = history.length ? history.map((h, i) => `
-        <div class="history-card" onclick="viewSavedReport(${i})"><b>${h.fio}</b> <small>(${h.mode.toUpperCase()})</small><br><small>${h.date}</small></div>
+        <div class="history-card" onclick="viewSavedReport(${i})">
+            <b>${h.fio}</b> <small>(${h.mode.toUpperCase()})</small><br>
+            <small>${h.date}</small>
+        </div>
     `).join("") : "История пуста";
     show("screen-history");
 }
 
 function viewSavedReport(index) {
-    const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
+    const history = JSON.parse(localStorage.getItem("checkride_history_v6") || "[]");
     const saved = history[index];
     document.getElementById("fio").value = saved.fio;
-    document.getElementById("license").value = saved.license;
     document.getElementById("instructor").value = saved.instructor;
-    currentMode = saved.mode; DATA = saved.fullData; DATA.savedDate = saved.date;
+    currentMode = saved.mode;
+    DATA = saved.fullData;
+    DATA.savedDate = saved.date;
     buildReport();
     const placeholder = document.getElementById("sig-image-placeholder");
     const canvas = document.getElementById("signature");
-    placeholder.innerHTML = `<img src="${saved.signature}" style="width:250px; border-bottom:1px solid #000;">`;
+    placeholder.innerHTML = saved.signature ? `<img src="${saved.signature}" style="width:250px; border-bottom:1px solid #000;">` : "";
     canvas.style.display = "none";
     show("screen-report");
 }
 
-function clearHistory() { if(confirm("Очистить?")) { localStorage.removeItem("checkride_history_v5"); showHistory(); } }
+function clearHistory() { if(confirm("Очистить?")) { localStorage.removeItem("checkride_history_v6"); showHistory(); } }
 
 function initSignature() {
     const canvas = document.getElementById("signature");
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const placeholder = document.getElementById("sig-image-placeholder");
     canvas.style.display = "block"; placeholder.innerHTML = "";
@@ -296,6 +312,24 @@ function initSignature() {
     canvas.onmousemove = canvas.ontouchmove = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
     canvas.onmouseup = canvas.ontouchend = () => drawing = false;
     ctx.lineWidth = 2; ctx.strokeStyle = "#000";
+}
+
+function exportPDF() {
+    const canvas = document.getElementById("signature");
+    const placeholder = document.getElementById("sig-image-placeholder");
+    if (canvas && canvas.style.display !== "none") {
+        placeholder.innerHTML = `<img src="${canvas.toDataURL()}" style="width:250px; border-bottom:1px solid #000;">`;
+        canvas.style.display = "none";
+    }
+    window.print();
+}
+
+function sendEmail() {
+    const fio = document.getElementById("fio").value;
+    const date = document.getElementById("r_date").innerText;
+    const subject = encodeURIComponent(`Отчет CheckRide: ${fio} - ${date}`);
+    const body = encodeURIComponent(`Отчет сформирован в приложении. См. печатную версию.`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
 }
 
 function show(id) {
