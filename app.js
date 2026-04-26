@@ -11,21 +11,24 @@ function setMode(mode) {
 async function startInspection() {
     const fio = document.getElementById("fio").value;
     const instructor = document.getElementById("instructor").value;
-    if (!fio || !instructor) return alert("Заполните ФИО проверяемого и ФИО проверяющего");
+    if (!fio || !instructor) return alert("Заполните ФИО проверяемого и проверяющего");
 
     const file = currentMode === 'line' ? 'data.json' : 'data_ffs.json';
     try {
         const response = await fetch(file);
         DATA = await response.json();
 
-        // Инициализация структуры
+        // Глубокая инициализация полей
         DATA.checklists.forEach(mainSec => {
             mainSec.sections.forEach(sec => {
-                // Комментарий и фото теперь на уровне СЕКЦИИ
                 sec.note = "";
                 sec.img = null;
-                sec.items.forEach(i => {
-                    i.ok = (i.type === "radio") ? null : false; 
+                // Инициализация внутри новых групп groups
+                const groups = sec.groups || [{ items: sec.items || [] }]; 
+                groups.forEach(group => {
+                    group.items.forEach(i => {
+                        i.ok = (i.type === "radio") ? null : false;
+                    });
                 });
             });
         });
@@ -33,57 +36,57 @@ async function startInspection() {
         currentSectionIndex = 0;
         renderSection();
         show('screen-test');
-    } catch (e) { alert("Ошибка загрузки данных."); }
+    } catch (e) { console.error(e); alert("Ошибка загрузки данных."); }
 }
 
 function renderSection() {
     const mainSection = DATA.checklists[currentSectionIndex];
     const itemsBox = document.getElementById("checklist-items");
-    const detailsBox = document.getElementById("checklist-details"); // Теперь не используется отдельно, детали внутри itemsBox
     const titleEl = document.getElementById("section-title");
 
     titleEl.innerText = mainSection.name;
     itemsBox.innerHTML = "";
 
     mainSection.sections.forEach((sec, secIdx) => {
-        // Заголовок подраздела
+        // Подзаголовок (Стандартные процедуры / Компетенции)
         const subHeader = document.createElement("h3");
         subHeader.className = "subname-title";
         subHeader.innerText = sec.subname;
         itemsBox.appendChild(subHeader);
 
-        // Пункты подраздела
-        sec.items.forEach(item => {
-            const itemDiv = document.createElement("div");
-            itemDiv.className = "item-container";
+        const groups = sec.groups || [{ items: sec.items || [] }];
 
-            if (item.type === "checkbox") {
-                itemDiv.innerHTML = `
-                    <div class="check-item">
-                        <input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}>
-                        <label for="c_${item.id}">${item.label}</label>
-                    </div>`;
-            } else if (item.type === "radio") {
-                let radioOptions = item.options.map((opt) => `
-                    <label class="radio-option">
-                        <input type="radio" name="r_${item.id}" value="${opt}" ${item.ok === opt ? 'checked' : ''}>
-                        <span>${opt}</span>
-                    </label>
-                `).join("");
-                itemDiv.innerHTML = `<div class="radio-group"><p class="radio-label"><b>${item.label}</b></p>${radioOptions}</div>`;
+        groups.forEach(group => {
+            // Если есть topitem, рисуем заголовок группы
+            if (group.topitem) {
+                const topHeader = document.createElement("h4");
+                topHeader.className = "topitem-title";
+                topHeader.innerText = group.topitem;
+                itemsBox.appendChild(topHeader);
             }
-            itemsBox.appendChild(itemDiv);
+
+            group.items.forEach(item => {
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "item-container";
+
+                if (item.type === "checkbox") {
+                    itemDiv.innerHTML = `<div class="check-item"><input type="checkbox" id="c_${item.id}" ${item.ok ? 'checked' : ''}><label for="c_${item.id}">${item.label}</label></div>`;
+                } else if (item.type === "radio") {
+                    let radioOptions = item.options.map(opt => `<label class="radio-option"><input type="radio" name="r_${item.id}" value="${opt}" ${item.ok === opt ? 'checked' : ''}><span>${opt}</span></label>`).join("");
+                    itemDiv.innerHTML = `<div class="radio-group"><p class="radio-label"><b>${item.label}</b></p>${radioOptions}</div>`;
+                }
+                itemsBox.appendChild(itemDiv);
+            });
         });
 
-        // ОДИН блок комментариев на весь подраздел (Subname)
+        // Блок комментариев на подраздел
         const detailDiv = document.createElement("div");
         detailDiv.className = "detail-item";
         detailDiv.innerHTML = `
-            <b style="color:var(--red);">Комментарии к разделу: ${sec.subname}</b>
-            <textarea id="sec_n_${currentSectionIndex}_${secIdx}" placeholder="Общий комментарий к блоку...">${sec.note || ''}</textarea>
+            <b style="color:var(--red);">Комментарии к: ${sec.subname}</b>
+            <textarea id="sec_n_${currentSectionIndex}_${secIdx}" placeholder="Общий комментарий...">${sec.note || ''}</textarea>
             <input type="file" accept="image/*" onchange="handleSectionFile(this, ${currentSectionIndex}, ${secIdx})">
-            <div id="sec_p_${currentSectionIndex}_${secIdx}">${sec.img ? `<img src="${sec.img}" width="100" style="margin-top:5px;">` : ''}</div>
-        `;
+            <div id="sec_p_${currentSectionIndex}_${secIdx}">${sec.img ? `<img src="${sec.img}" width="100">` : ''}</div>`;
         itemsBox.appendChild(detailDiv);
     });
     updateNav();
@@ -92,29 +95,149 @@ function renderSection() {
 function saveState() {
     const mainSection = DATA.checklists[currentSectionIndex];
     mainSection.sections.forEach((sec, secIdx) => {
-        // Сохраняем состояние пунктов
-        sec.items.forEach(item => {
-            if (item.type === "checkbox") {
-                const cb = document.getElementById(`c_${item.id}`);
-                if (cb) item.ok = cb.checked;
-            } else if (item.type === "radio") {
-                const selected = document.querySelector(`input[name="r_${item.id}"]:checked`);
-                item.ok = selected ? selected.value : null;
-            }
+        const groups = sec.groups || [{ items: sec.items || [] }];
+        groups.forEach(group => {
+            group.items.forEach(item => {
+                if (item.type === "checkbox") {
+                    const cb = document.getElementById(`c_${item.id}`);
+                    if (cb) item.ok = cb.checked;
+                } else if (item.type === "radio") {
+                    const selected = document.querySelector(`input[name="r_${item.id}"]:checked`);
+                    item.ok = selected ? selected.value : null;
+                }
+            });
         });
-        // Сохраняем общий комментарий секции
         const nt = document.getElementById(`sec_n_${currentSectionIndex}_${secIdx}`);
         if (nt) sec.note = nt.value;
     });
 }
 
+function calculateRatings() {
+    let reportHtml = `<div class="rating-summary"><h3>Сводная оценка</h3>`;
+    
+    // 1. ТЕХНИКА И ПРОЦЕДУРЫ (Расчет по этапам)
+    let totalPilotingScores = [];
+    
+    DATA.checklists.forEach(mainSec => {
+        let namePilotingScores = [];
+        let nameViolations = 0;
+        let hasPiloting = false;
+
+        mainSec.sections.forEach(sec => {
+            const groups = sec.groups || [{ items: sec.items || [] }];
+            groups.forEach(group => {
+                group.items.forEach(item => {
+                    if (item.type === "radio") {
+                        hasPiloting = true;
+                        let score = item.ok ? (5 - item.options.indexOf(item.ok)) : 2;
+                        if (score < 2) score = 2;
+                        namePilotingScores.push(score);
+                    } else if (item.type === "checkbox" && sec.subname !== "Компетенции.") {
+                        if (!item.ok) nameViolations++;
+                    }
+                });
+            });
+        });
+
+        let pilotingResult = "-";
+        if (hasPiloting) {
+            pilotingResult = namePilotingScores.includes(2) ? 2 : Math.round(namePilotingScores.reduce((a,b)=>a+b,0)/namePilotingScores.length);
+            totalPilotingScores.push(pilotingResult);
+        }
+
+        reportHtml += `<div class="rating-block"><b>${mainSec.name}</b><br>
+            ${hasPiloting ? `Техника: <span class="score-val">${pilotingResult}</span> | ` : ""}
+            Процедуры: <span class="score-val">${nameViolations} нар.</span></div>`;
+    });
+
+    // 2. КОМПЕТЕНЦИИ (Расчет по уникальным пунктам)
+    let compData = {}; // { topitem: { label: { ok: 0, total: 0 } } }
+
+    DATA.checklists.forEach(mainSec => {
+        mainSec.sections.forEach(sec => {
+            if (sec.subname === "Компетенции." && sec.groups) {
+                sec.groups.forEach(group => {
+                    const topName = group.topitem || "Общие";
+                    if (!compData[topName]) compData[topName] = {};
+                    group.items.forEach(item => {
+                        if (!compData[topName][item.label]) compData[topName][item.label] = { ok: 0, total: 0 };
+                        compData[topName][item.label].total++;
+                        if (item.ok) compData[topName][item.label].ok++;
+                    });
+                });
+            }
+        });
+    });
+
+    reportHtml += `<hr><h4>Компетенции (среднее по ПП/РУ)</h4>`;
+
+    Object.keys(compData).forEach(topName => {
+        let groupItemScores = [];
+        Object.keys(compData[topName]).forEach(label => {
+            const stats = compData[topName][label];
+            const percent = (stats.ok / stats.total) * 100;
+            let score = 2;
+            if (percent > 90) score = 5;
+            else if (percent >= 81) score = 4;
+            else if (percent >= 71) score = 3;
+            groupItemScores.push(score);
+        });
+
+        const groupAvg = groupItemScores.length ? Math.round(groupItemScores.reduce((a,b)=>a+b,0)/groupItemScores.length) : "-";
+        reportHtml += `<p>${topName} <span class="score-val">${groupAvg}</span></p>`;
+    });
+
+    reportHtml += `</div>`;
+    return reportHtml;
+}
+
+function buildReport() {
+    const container = document.getElementById("report-data");
+    container.innerHTML = calculateRatings();
+
+    DATA.checklists.forEach(mainSec => {
+        const title = document.createElement("h2");
+        title.className = "report-main-title";
+        title.innerText = mainSec.name;
+        container.appendChild(title);
+
+        mainSec.sections.forEach(sec => {
+            const sDiv = document.createElement("div");
+            sDiv.innerHTML = `<h3 class="report-subname">${sec.subname}</h3>`;
+            const groups = sec.groups || [{ items: sec.items || [] }];
+            
+            groups.forEach(group => {
+                if(group.topitem) sDiv.innerHTML += `<h4 class="report-topitem">${group.topitem}</h4>`;
+                group.items.forEach(item => {
+                    let res = item.type === "checkbox" ? 
+                        `<div class="flex-row"><div class="box">${item.ok ? 'X' : ''}</div><span>${item.ok ? 'OK' : 'Нарушение'}</span></div>` :
+                        `<div style="font-size:14px;"><b>Выбрано:</b> ${item.ok || 'Не выбрано'}</div>`;
+                    sDiv.innerHTML += `<div class="report-item-row"><p>${item.label}</p>${res}</div>`;
+                });
+            });
+
+            if (sec.note || sec.img) {
+                sDiv.innerHTML += `<div class="report-comment">${sec.note || ''}${sec.img ? `<img src="${sec.img}" class="report-img">` : ""}</div>`;
+            }
+            container.appendChild(sDiv);
+        });
+    });
+
+    document.getElementById("r_fio").innerText = document.getElementById("fio").value;
+    document.getElementById("r_license").innerText = document.getElementById("license").value;
+    document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
+    document.getElementById("r_date").innerText = DATA.savedDate || new Date().toLocaleString();
+    document.getElementById("r_mode").innerText = currentMode.toUpperCase();
+}
+
+// --- Остальные функции (handleSectionFile, updateNav, finishInspection, saveToLocalStorage, showHistory, viewSavedReport, clearHistory, exportPDF, initSignature, show, resetApp, sendEmail) остаются без изменений из предыдущего кода ---
+
 async function handleSectionFile(input, mainIdx, secIdx) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            const b64 = e.target.result;
-            DATA.checklists[mainIdx].sections[secIdx].img = b64;
-            document.getElementById(`sec_p_${mainIdx}_${secIdx}`).innerHTML = `<img src="${b64}" width="100" style="margin-top:5px;">`;
+            DATA.checklists[mainIdx].sections[secIdx].img = e.target.result;
+            document.getElementById(`sec_p_${mainIdx}_${secIdx}`).innerHTML = `<img src="${e.target.result}" width="100">`;
         };
         reader.readAsDataURL(input.files[0]);
     }
@@ -140,116 +263,8 @@ function finishInspection() {
     initSignature();
 }
 
-// --- ЛОГИКА РАСЧЕТА ОЦЕНОК ---
-function calculateRatings() {
-    let totalPilotingScores = [];
-    let reportHtml = `<div class="rating-summary"><h3>Результаты оценки:</h3>`;
-
-    DATA.checklists.forEach(mainSec => {
-        let namePilotingScores = [];
-        let nameViolations = 0;
-        let hasPiloting = false;
-
-        mainSec.sections.forEach(sec => {
-            sec.items.forEach(item => {
-                if (item.type === "radio") {
-                    hasPiloting = true;
-                    let score = 2; // По умолчанию, если не выбран
-                    if (item.ok) {
-                        const idx = item.options.indexOf(item.ok);
-                        score = 5 - idx; // 0->5, 1->4, 2->3...
-                        if (score < 2) score = 2;
-                    }
-                    namePilotingScores.push(score);
-                } else if (item.type === "checkbox") {
-                    if (!item.ok) nameViolations++;
-                }
-            });
-        });
-
-        // Расчет Техники для конкретного name
-        let namePilotingResult = "-";
-        if (hasPiloting) {
-            if (namePilotingScores.includes(2)) {
-                namePilotingResult = 2;
-            } else {
-                const avg = namePilotingScores.reduce((a, b) => a + b, 0) / namePilotingScores.length;
-                namePilotingResult = Math.round(avg);
-            }
-            totalPilotingScores.push(namePilotingResult);
-        }
-
-        reportHtml += `
-            <div style="margin-bottom:10px; border-left:3px solid var(--red); padding-left:10px;">
-                <b>${mainSec.name}</b><br>
-                ${hasPiloting ? `Техника пилотирования: <span class="score-val">${namePilotingResult}</span><br>` : ""}
-                Стандартные процедуры: <span class="score-val">${nameViolations} замеч.</span>
-            </div>`;
-    });
-
-    // Итоговая оценка по Технике Пилотирования
-    let finalPiloting = "-";
-    if (totalPilotingScores.length > 0) {
-        if (totalPilotingScores.includes(2)) finalPiloting = 2;
-        else {
-            const finalAvg = totalPilotingScores.reduce((a, b) => a + b, 0) / totalPilotingScores.length;
-            finalPiloting = Math.round(finalAvg);
-        }
-    }
-
-    reportHtml += `<hr>
-        <p><b>Итоговая техника пилотирования: <span class="score-val">${finalPiloting}</span></b></p>
-        <p><b>Компетенции:</b> <span style="color:grey;">В разработке...</span></p>
-    </div>`;
-
-    return reportHtml;
-}
-
-function buildReport() {
-    const container = document.getElementById("report-data");
-    container.innerHTML = "";
-
-    // Вставляем блок оценок в начало
-    container.innerHTML = calculateRatings();
-
-    DATA.checklists.forEach(mainSec => {
-        const mainTitle = document.createElement("h2");
-        mainTitle.style.cssText = "color:var(--red); margin-top:25px; border-bottom:2px solid var(--red); padding-bottom:5px;";
-        mainTitle.innerText = mainSec.name;
-        container.appendChild(mainTitle);
-
-        mainSec.sections.forEach(sec => {
-            const sDiv = document.createElement("div");
-            sDiv.innerHTML = `<h3 style="background:#f4f4f4; padding:5px 10px; margin:15px 0 5px 0; font-size:16px;">${sec.subname}</h3>`;
-            
-            sec.items.forEach(item => {
-                let res = item.type === "checkbox" ? 
-                    `<div class="flex-row"><div class="box">${item.ok ? 'X' : ''}</div><span>Статус: ${item.ok ? 'OK' : 'Нарушение'}</span></div>` :
-                    `<div style="font-size:14px; margin:5px 0;"><b>Выбрано:</b> ${item.ok || 'Не выбрано'}</div>`;
-                sDiv.innerHTML += `<div style="margin-bottom:8px; border-bottom:1px solid #f0f0f0;"><p style="margin:5px 0;"><b>${item.label}</b></p>${res}</div>`;
-            });
-
-            // Вывод ОБЩЕГО комментария подраздела в отчет
-            if (sec.note || sec.img) {
-                sDiv.innerHTML += `
-                    <div style="background:#fff9f9; padding:8px; margin-top:5px; border:1px solid #ffebeb;">
-                        ${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий раздела:</b> ${sec.note}</p>` : ""}
-                        ${sec.img ? `<img src="${sec.img}" style="max-width:250px; display:block; margin-top:5px;">` : ""}
-                    </div>`;
-            }
-            container.appendChild(sDiv);
-        });
-    });
-
-    document.getElementById("r_fio").innerText = document.getElementById("fio").value;
-    document.getElementById("r_license").innerText = document.getElementById("license").value;
-    document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
-    document.getElementById("r_date").innerText = DATA.savedDate || new Date().toLocaleString();
-    document.getElementById("r_mode").innerText = currentMode.toUpperCase();
-}
-
 function saveToLocalStorage() {
-    const history = JSON.parse(localStorage.getItem("checkride_history_v6") || "[]");
+    const history = JSON.parse(localStorage.getItem("checkride_history_v7") || "[]");
     const canvas = document.getElementById("signature");
     const entry = {
         fio: document.getElementById("fio").value,
@@ -261,11 +276,11 @@ function saveToLocalStorage() {
         signature: (canvas && canvas.style.display !== 'none') ? canvas.toDataURL() : null
     };
     history.unshift(entry);
-    localStorage.setItem("checkride_history_v6", JSON.stringify(history.slice(0, 20)));
+    localStorage.setItem("checkride_history_v7", JSON.stringify(history.slice(0, 20)));
 }
 
 function showHistory() {
-    const history = JSON.parse(localStorage.getItem("checkride_history_v6") || "[]");
+    const history = JSON.parse(localStorage.getItem("checkride_history_v7") || "[]");
     const box = document.getElementById("historyList");
     box.innerHTML = history.length ? history.map((h, i) => `
         <div class="history-card" onclick="viewSavedReport(${i})">
@@ -277,7 +292,7 @@ function showHistory() {
 }
 
 function viewSavedReport(index) {
-    const history = JSON.parse(localStorage.getItem("checkride_history_v6") || "[]");
+    const history = JSON.parse(localStorage.getItem("checkride_history_v7") || "[]");
     const saved = history[index];
     document.getElementById("fio").value = saved.fio;
     document.getElementById("instructor").value = saved.instructor;
@@ -292,7 +307,7 @@ function viewSavedReport(index) {
     show("screen-report");
 }
 
-function clearHistory() { if(confirm("Очистить?")) { localStorage.removeItem("checkride_history_v6"); showHistory(); } }
+function clearHistory() { if(confirm("Очистить историю?")) { localStorage.removeItem("checkride_history_v7"); showHistory(); } }
 
 function initSignature() {
     const canvas = document.getElementById("signature");
@@ -304,9 +319,7 @@ function initSignature() {
     let drawing = false;
     const getPos = (e) => {
         const rect = canvas.getBoundingClientRect();
-        const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-        const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-        return { x: cx, y: cy };
+        return { x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left, y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top };
     };
     canvas.onmousedown = canvas.ontouchstart = (e) => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
     canvas.onmousemove = canvas.ontouchmove = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
@@ -327,15 +340,12 @@ function exportPDF() {
 function sendEmail() {
     const fio = document.getElementById("fio").value;
     const date = document.getElementById("r_date").innerText;
-    const subject = encodeURIComponent(`Отчет CheckRide: ${fio} - ${date}`);
-    const body = encodeURIComponent(`Отчет сформирован в приложении. См. печатную версию.`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:?subject=Checkride Report: ${fio} - ${date}&body=Отчет сформирован в системе CheckRide.`;
 }
 
 function show(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
-    window.scrollTo(0,0);
 }
 
 function resetApp() { location.reload(); }
