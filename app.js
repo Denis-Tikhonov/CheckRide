@@ -16,9 +16,9 @@ async function startInspection() {
     const file = currentMode === 'line' ? 'data.json' : 'data_ffs.json';
     try {
         const response = await fetch(file);
+        if (!response.ok) throw new Error("Файл не найден");
         DATA = await response.json();
 
-        // Глубокая инициализация полей
         DATA.checklists.forEach(mainSec => {
             mainSec.sections.forEach(sec => {
                 sec.note = "";
@@ -35,7 +35,7 @@ async function startInspection() {
         currentSectionIndex = 0;
         renderSection();
         show('screen-test');
-    } catch (e) { console.error(e); alert("Ошибка загрузки данных."); }
+    } catch (e) { alert("Ошибка загрузки данных: " + e.message); }
 }
 
 function renderSection() {
@@ -76,7 +76,7 @@ function renderSection() {
         const detailDiv = document.createElement("div");
         detailDiv.className = "detail-item";
         detailDiv.innerHTML = `
-            <b style="color:var(--red);">Комментарии к: ${sec.subname}</b>
+            <b style="color:var(--red);">Комментарии к разделу: ${sec.subname}</b>
             <textarea id="sec_n_${currentSectionIndex}_${secIdx}" placeholder="Общий комментарий...">${sec.note || ''}</textarea>
             <input type="file" accept="image/*" onchange="handleSectionFile(this, ${currentSectionIndex}, ${secIdx})">
             <div id="sec_p_${currentSectionIndex}_${secIdx}">${sec.img ? `<img src="${sec.img}" width="100">` : ''}</div>`;
@@ -106,38 +106,36 @@ function saveState() {
 }
 
 function calculateRatings() {
+    let totalPilotingScores = [];
     let reportHtml = `<div class="rating-summary"><h3>Сводная оценка</h3>`;
+    
     DATA.checklists.forEach(mainSec => {
         let namePilotingScores = [];
         let nameViolations = 0;
         let hasPiloting = false;
-
         mainSec.sections.forEach(sec => {
             const groups = sec.groups || [{ items: sec.items || [] }];
-            groups.forEach(group => {
-                group.items.forEach(item => {
-                    if (item.type === "radio") {
-                        hasPiloting = true;
-                        let score = item.ok ? (5 - item.options.indexOf(item.ok)) : 2;
-                        if (score < 2) score = 2;
-                        namePilotingScores.push(score);
-                    } else if (item.type === "checkbox" && sec.subname !== "Компетенции.") {
-                        if (!item.ok) nameViolations++;
-                    }
-                });
-            });
+            groups.forEach(g => g.items.forEach(item => {
+                if (item.type === "radio") {
+                    hasPiloting = true;
+                    let score = item.ok ? (5 - item.options.indexOf(item.ok)) : 2;
+                    namePilotingScores.push(score < 2 ? 2 : score);
+                } else if (item.type === "checkbox" && sec.subname !== "Компетенции.") {
+                    if (!item.ok) nameViolations++;
+                }
+            }));
         });
-
-        let pilotingResult = "-";
+        let pRes = "-";
         if (hasPiloting) {
-            pilotingResult = namePilotingScores.includes(2) ? 2 : Math.round(namePilotingScores.reduce((a,b)=>a+b,0)/namePilotingScores.length);
+            pRes = namePilotingScores.includes(2) ? 2 : Math.round(namePilotingScores.reduce((a,b)=>a+b,0)/namePilotingScores.length);
+            totalPilotingScores.push(pRes);
         }
-
         reportHtml += `<div class="rating-block"><b>${mainSec.name}</b><br>
-            ${hasPiloting ? `Техника: <span class="score-val">${pilotingResult}</span> | ` : ""}
+            ${hasPiloting ? `Техника: <span class="score-val">${pRes}</span> | ` : ""}
             Процедуры: <span class="score-val">${nameViolations} нар.</span></div>`;
     });
 
+    // Расчет компетенций
     let compData = {}; 
     DATA.checklists.forEach(mainSec => {
         mainSec.sections.forEach(sec => {
@@ -161,7 +159,7 @@ function calculateRatings() {
         Object.keys(compData[topName]).forEach(label => {
             const stats = compData[topName][label];
             const percent = (stats.ok / stats.total) * 100;
-            let score = (percent > 90) ? 5 : (percent >= 81) ? 4 : (percent >= 71) ? 3 : 2;
+            let score = percent > 90 ? 5 : percent >= 81 ? 4 : percent >= 71 ? 3 : 2;
             groupItemScores.push(score);
         });
         const groupAvg = groupItemScores.length ? Math.round(groupItemScores.reduce((a,b)=>a+b,0)/groupItemScores.length) : "-";
@@ -175,18 +173,15 @@ function calculateRatings() {
 function buildReport() {
     const container = document.getElementById("report-data");
     container.innerHTML = calculateRatings();
-
     DATA.checklists.forEach(mainSec => {
         const title = document.createElement("h2");
         title.className = "report-main-title";
         title.innerText = mainSec.name;
         container.appendChild(title);
-
         mainSec.sections.forEach(sec => {
             const sDiv = document.createElement("div");
             sDiv.innerHTML = `<h3 class="report-subname">${sec.subname}</h3>`;
             const groups = sec.groups || [{ items: sec.items || [] }];
-            
             groups.forEach(group => {
                 if(group.topitem) sDiv.innerHTML += `<h4 class="report-topitem">${group.topitem}</h4>`;
                 group.items.forEach(item => {
@@ -196,14 +191,12 @@ function buildReport() {
                     sDiv.innerHTML += `<div class="report-item-row"><p>${item.label}</p>${res}</div>`;
                 });
             });
-
             if (sec.note || sec.img) {
-                sDiv.innerHTML += `<div class="report-comment">${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий раздела:</b> ${sec.note}</p>` : ""}${sec.img ? `<img src="${sec.img}" class="report-img">` : ""}</div>`;
+                sDiv.innerHTML += `<div class="report-comment">${sec.note ? `<p style="font-size:13px; margin:0;"><b>Комментарий:</b> ${sec.note}</p>` : ""}${sec.img ? `<img src="${sec.img}" class="report-img">` : ""}</div>`;
             }
             container.appendChild(sDiv);
         });
     });
-
     document.getElementById("r_fio").innerText = document.getElementById("fio").value;
     document.getElementById("r_license").innerText = document.getElementById("license").value;
     document.getElementById("r_instructor").innerText = document.getElementById("instructor").value;
@@ -248,7 +241,7 @@ function saveToLocalStorage() {
     const entry = {
         fio: document.getElementById("fio").value,
         license: document.getElementById("license").value,
-        instructor: document.getElementById("instructor").value,
+        instructor: document.getElementById("instructor").value, // Исправлено!
         date: new Date().toLocaleString(),
         mode: currentMode,
         fullData: JSON.parse(JSON.stringify(DATA)),
@@ -274,8 +267,8 @@ function viewSavedReport(index) {
     const history = JSON.parse(localStorage.getItem("checkride_history_v7") || "[]");
     const saved = history[index];
     document.getElementById("fio").value = saved.fio;
-    document.getElementById("instructor").value = saved.instructor;
     document.getElementById("license").value = saved.license;
+    document.getElementById("instructor").value = saved.instructor;
     currentMode = saved.mode;
     DATA = saved.fullData;
     DATA.savedDate = saved.date;
@@ -317,49 +310,16 @@ function exportPDF() {
     window.print();
 }
 
-// ИСПРАВЛЕННОЕ ФОРМИРОВАНИЕ ПИСЬМА ПО ОБРАЗЦУ MAIL
+// ИСПРАВЛЕНО: Формирование письма
 function sendEmail() {
     const fio = document.getElementById("fio").value;
     const instructor = document.getElementById("instructor").value;
     const date = document.getElementById("r_date").innerText;
     const mode = currentMode.toUpperCase();
 
-    let text = `ОТЧЕТ ПО ПРОВЕРКЕ\n`;
-    text += `---------------------------\n`;
-    text += `Проверяемый: ${fio}\n`;
-    text += `Инструктор: ${instructor}\n`;
-    text += `Режим: ${mode}\n`;
-    text += `Дата: ${date}\n\n`;
+    let text = `ОТЧЕТ ПО ПРОВЕРКЕ\n---------------------------\n`;
+    text += `Проверяемый: ${fio}\nИнструктор: ${instructor}\nРежим: ${mode}\nДата: ${date}\n\n`;
 
-    text += `РЕЗУЛЬТАТЫ ОЦЕНКИ:\n`;
-    
-    // Пересчитываем оценки для текста письма
-    DATA.checklists.forEach(mainSec => {
-        let pilScores = [];
-        let violations = 0;
-        let hasPil = false;
-
-        mainSec.sections.forEach(sec => {
-            const groups = sec.groups || [{ items: sec.items || [] }];
-            groups.forEach(g => g.items.forEach(item => {
-                if (item.type === "radio") {
-                    hasPil = true;
-                    let s = item.ok ? (5 - item.options.indexOf(item.ok)) : 2;
-                    pilScores.push(s < 2 ? 2 : s);
-                } else if (item.type === "checkbox" && sec.subname !== "Компетенции.") {
-                    if (!item.ok) violations++;
-                }
-            }));
-        });
-
-        let pRes = "-";
-        if (hasPil) {
-            pRes = pilScores.includes(2) ? 2 : Math.round(pilScores.reduce((a,b)=>a+b,0)/pilScores.length);
-        }
-        text += `- ${mainSec.name}: Техника [${pRes}], Процедуры [${violations} нар.]\n`;
-    });
-
-    text += `\nДЕТАЛИЗАЦИЯ ПО ПУНКТАМ:\n`;
     DATA.checklists.forEach(mainSec => {
         text += `\n=== ${mainSec.name.toUpperCase()} ===\n`;
         mainSec.sections.forEach(sec => {
@@ -372,7 +332,7 @@ function sendEmail() {
                     text += `  - ${item.label}: ${status}\n`;
                 });
             });
-            if(sec.note) text += `  Комментарий к разделу: ${sec.note}\n`;
+            if(sec.note) text += `  Комментарий: ${sec.note}\n`;
         });
     });
 
