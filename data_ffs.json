@@ -1,26 +1,14 @@
 {
   "checklists": [
     {
-      "name": "Preflight.",
+      "name": "Preflight.", 
       "sections": [
         {
           "subname": "Стандартные процедуры.",
           "items": [
-            {
-              "id": "pf_1",
-              "type": "checkbox",
-              "label": "Анализ погодных условий."
-            },
-            {
-              "id": "pf_2",
-              "type": "checkbox",
-              "label": "Ознакомление с документацией."
-            },
-            {
-              "id": "pf_3",
-              "type": "checkbox",
-              "label": "Проверка личных документов."
-            }
+            { "id": "pf_1", "type": "checkbox", "label": "Анализ погодных условий." },
+            { "id": "pf_2", "type": "checkbox", "label": "Ознакомление с документацией." },
+            { "id": "pf_3", "type": "checkbox", "label": "Проверка личных документов." }
           ]
         },
         {
@@ -29,37 +17,15 @@
             {
               "topitem": "Применение процедур (ПП):",
               "items": [
-                {
-                  "id": "pf_4",
-                  "type": "checkbox",
-                  "label": "Определяет источник эксплуатационных инструкций."
-                },
-                { "id": "pf_5", "type": "checkbox", "label": "Следует SOP." }
+                { "id": "comp_pf_1", "type": "checkbox", "label": "Определяет источник эксплуатационных инструкций." },
+                { "id": "comp_pf_2", "type": "checkbox", "label": "Следует SOP." }
               ]
             },
             {
               "topitem": "Управление траекторией полета ВС (РУ):",
               "items": [
-                {
-                  "id": "pf_6",
-                  "type": "checkbox",
-                  "label": "Точно и плавно управляет ВС."
-                },
-                {
-                  "id": "pf_7",
-                  "type": "checkbox",
-                  "label": "Контролируе основные параметры полета."
-                },
-                {
-                  "id": "pf_8",
-                  "type": "checkbox",
-                  "label": "Точно и плавно управляет тягой."
-                },
-                {
-                  "id": "pf_9",
-                  "type": "checkbox",
-                  "label": "Контролируе основные параметры полета."
-                }
+                { "id": "comp_pf_3", "type": "checkbox", "label": "Точно и плавно управляет ВС." },
+                { "id": "comp_pf_4", "type": "checkbox", "label": "Контролирует основные параметры полета." }
               ]
             }
           ]
@@ -73,7 +39,7 @@
           "subname": "Техника пилотирования.",
           "items": [
             {
-              "id": "to_1",
+              "id": "to_rad_1",
               "type": "radio",
               "label": "Скорость разбега:",
               "options": [
@@ -83,7 +49,7 @@
               ]
             },
             {
-              "id": "to_2",
+              "id": "to_rad_2",
               "type": "radio",
               "label": "Направление на разбеге:",
               "options": ["Отклонение 5м", "Отклонение 10м", "Отклонение 15м"]
@@ -93,9 +59,9 @@
         {
           "subname": "Стандартные процедуры.",
           "items": [
-            { "id": "to_3", "type": "checkbox", "label": "Руление." },
-            { "id": "to_4", "type": "checkbox", "label": "Разбег." },
-            { "id": "to_5", "type": "checkbox", "label": "Ведение радиосвязи." }
+            { "id": "to_chk_1", "type": "checkbox", "label": "Руление." },
+            { "id": "to_chk_2", "type": "checkbox", "label": "Разбег." },
+            { "id": "to_chk_3", "type": "checkbox", "label": "Ведение радиосвязи." }
           ]
         },
         {
@@ -104,27 +70,15 @@
             {
               "topitem": "Применение процедур (ПП):",
               "items": [
-                {
-                  "id": "pf_4",
-                  "type": "checkbox",
-                  "label": "Определяет источник эксплуатационных инструкций."
-                },
-                { "id": "pf_5", "type": "checkbox", "label": "Следует SOP." }
+                { "id": "comp_to_1", "type": "checkbox", "label": "Определяет источник эксплуатационных инструкций." },
+                { "id": "comp_to_2", "type": "checkbox", "label": "Следует SOP." }
               ]
             },
             {
               "topitem": "Управление траекторией полета ВС (РУ):",
               "items": [
-                {
-                  "id": "pf_8",
-                  "type": "checkbox",
-                  "label": "Точно и плавно управляет ВС."
-                },
-                {
-                  "id": "pf_7",
-                  "type": "checkbox",
-                  "label": "Контролируе основные параметры полета."
-                }
+                { "id": "comp_to_3", "type": "checkbox", "label": "Точно и плавно управляет ВС." },
+                { "id": "comp_to_4", "type": "checkbox", "label": "Контролирует основные параметры полета." }
               ]
             }
           ]
@@ -141,27 +95,15 @@
             {
               "topitem": "Применение процедур (ПП):",
               "items": [
-                {
-                  "id": "pf_4",
-                  "type": "checkbox",
-                  "label": "Определяет источник эксплуатационных инструкций."
-                },
-                { "id": "pf_5", "type": "checkbox", "label": "Следует SOP." }
+                { "id": "comp_cr_1", "type": "checkbox", "label": "Определяет источник эксплуатационных инструкций." },
+                { "id": "comp_cr_2", "type": "checkbox", "label": "Следует SOP." }
               ]
             },
             {
               "topitem": "Управление траекторией полета ВС (РУ):",
               "items": [
-                {
-                  "id": "pf_8",
-                  "type": "checkbox",
-                  "label": "Точно и плавно управляет ВС."
-                },
-                {
-                  "id": "pf_7",
-                  "type": "checkbox",
-                  "label": "Контролируе основные параметры полета."
-                }
+                { "id": "comp_cr_3", "type": "checkbox", "label": "Точно и плавно управляет ВС." },
+                { "id": "comp_cr_4", "type": "checkbox", "label": "Контролирует основные параметры полета." }
               ]
             }
           ]
