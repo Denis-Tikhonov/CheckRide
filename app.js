@@ -179,7 +179,6 @@ function exportPDF() {
     btn.innerText = "Генерация...";
     btn.disabled = true;
 
-    // Переводим подпись в картинку
     if (canvas.style.display !== "none") {
         placeholder.innerHTML = `<img src="${canvas.toDataURL()}" style="width:250px; border-bottom:1px solid #000;">`;
         canvas.style.display = "none";
@@ -194,7 +193,6 @@ function exportPDF() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // Запуск через таймаут, чтобы DOM успел "успокоиться"
     setTimeout(() => {
         html2pdf().set(opt).from(element).save().then(() => {
             btn.innerText = "Скачать PDF";
@@ -206,7 +204,39 @@ function exportPDF() {
     }, 500);
 }
 
-// Функции Истории и Подписи остаются такими же (сокращены для краткости)
+// Новая функция: Отправка по почте
+function sendEmail() {
+    const fio = document.getElementById("fio").value;
+    const instructor = document.getElementById("instructor").value;
+    const date = document.getElementById("r_date").innerText;
+    const mode = currentMode.toUpperCase();
+
+    let body = `ОТЧЕТ ПО ПРОВЕРКЕ\n`;
+    body += `---------------------------\n`;
+    body += `Проверяемый: ${fio}\n`;
+    body += `Инструктор: ${instructor}\n`;
+    body += `Дата: ${date}\n`;
+    body += `Режим: ${mode}\n\n`;
+
+    DATA.checklists.forEach(mainSec => {
+        body += `=== ${mainSec.name.toUpperCase()} ===\n`;
+        mainSec.sections.forEach(sec => {
+            if (sec.items.length > 0) body += `[${sec.subname}]\n`;
+            sec.items.forEach(item => {
+                const status = item.type === "checkbox" ? (item.ok ? "OK" : "НАРУШЕНИЕ") : (item.ok || "Не выбрано");
+                body += `- ${item.label}: ${status}\n`;
+                if (item.note) body += `  Комментарий: ${item.note}\n`;
+            });
+            body += `\n`;
+        });
+    });
+
+    const subject = encodeURIComponent(`Отчет CheckRide: ${fio} - ${date}`);
+    const mailBody = encodeURIComponent(body);
+    
+    window.location.href = `mailto:?subject=${subject}&body=${mailBody}`;
+}
+
 function saveToLocalStorage() {
     const history = JSON.parse(localStorage.getItem("checkride_history_v5") || "[]");
     const canvas = document.getElementById("signature");
