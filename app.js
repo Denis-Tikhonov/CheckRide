@@ -132,7 +132,7 @@ function calculateRatings() {
             }));
         });
         let pRes = piloting.length ? (piloting.includes(2) ? 2 : Math.round(piloting.reduce((a,b)=>a+b,0)/piloting.length)) : "-";
-        reportHtml += `<div class="rating-block"><b>${mainSec.name}</b> | Техника: <span class="score-val">${pRes}</span> | Нарушений: <span class="score-val">${violations}</span></div>`;
+        reportHtml += `<div class="rating-block"><b>${mainSec.name}</b> | Техника пилотирования: <span class="score-val">${pRes}</span> | Нарушений: <span class="score-val">${violations}</span></div>`;
     });
     return reportHtml + `</div>`;
 }
