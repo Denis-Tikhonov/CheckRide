@@ -177,7 +177,6 @@ function buildReport() {
     document.getElementById("r_mode").innerText = currentMode.toUpperCase();
 }
 
-// Утилиты (сжатие, навигация, сохранение) остаются прежними, но с учетом новых полей
 async function handleSectionFile(input, mainIdx, secIdx) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -209,7 +208,20 @@ function updateNav() {
     document.getElementById("btn-finish").classList.toggle("hidden", !isLast);
 }
 
-function finishInspection() { saveState(); buildReport(); saveToLocalStorage(); show("screen-report"); initSignature(); }
+function finishInspection() {
+    saveState();
+    
+    // Запрос полетного времени
+    const flightTime = prompt("Введите полетное время (например, 02:30):");
+    if (flightTime) {
+        document.getElementById("flight_time").value = flightTime;
+    }
+    
+    buildReport();
+    saveToLocalStorage();
+    show("screen-report");
+    initSignature();
+}
 
 function saveToLocalStorage() {
     const entry = {
@@ -218,6 +230,7 @@ function saveToLocalStorage() {
         instructor: document.getElementById("instructor").value,
         route: document.getElementById("route").value,
         ac_number: document.getElementById("ac_number").value,
+        flight_time: document.getElementById("flight_time").value,
         date: new Date().toLocaleString(),
         mode: currentMode,
         fullData: JSON.parse(JSON.stringify(DATA))
@@ -238,7 +251,9 @@ function showHistory() {
 
 function viewSavedReport(i) {
     const h = JSON.parse(localStorage.getItem("checkride_v8"))[i];
-    ["fio", "license", "instructor", "route", "ac_number"].forEach(f => document.getElementById(f).value = h[f]);
+    ["fio", "license", "instructor", "route", "ac_number", "flight_time"].forEach(f => {
+        document.getElementById(f).value = h[f] || "";
+    });
     DATA = h.fullData; DATA.savedDate = h.date; currentMode = h.mode;
     buildReport(); show("screen-report");
     document.getElementById("signature").style.display = "none";

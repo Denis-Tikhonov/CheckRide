@@ -65,9 +65,7 @@
         </div>
         
         <div class="no-print">
-            <div style="margin-top:20px; border-top:1px solid #ccc; padding-top:15px;">
-                <input type="text" id="flight_time" placeholder="Введите полетное время (напр. 02:30)">
-            </div>
+            <input type="hidden" id="flight_time">
             <button class="main-btn" onclick="exportPDF()">Печать / Сохранить в PDF</button>
             <button class="secondary-btn" onclick="sendEmail()">Отправить по почте</button>
             <button class="secondary-btn" onclick="resetApp()">На главную</button>
