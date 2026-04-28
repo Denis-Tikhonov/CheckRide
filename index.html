@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CheckRide Rating V8</title>
+    <title>CheckRide V5 Enterprise</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,13 +11,14 @@
 <header class="no-print">
     <div class="header-container">
         <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
-        <h1>CheckRide Rating</h1>
+        <h1>CheckRide V5</h1>
     </div>
 </header>
 
 <main>
+    <!-- Регистрация пилота -->
     <section id="screen-start" class="screen">
-        <h2>Регистрация</h2>
+        <h2>Регистрация пилота</h2>
         <div class="mode-selector">
             <button id="btn-line" class="mode-btn active" onclick="setMode('line')">LINE</button>
             <button id="btn-ffs" class="mode-btn" onclick="setMode('ffs')">FFS</button>
@@ -25,28 +26,30 @@
         <input type="text" id="fio" placeholder="ФИО проверяемого">
         <input type="text" id="license" placeholder="Номер лицензии">
         <input type="text" id="instructor" placeholder="Проверяющий (Инструктор)">
-        <input type="text" id="route" placeholder="Маршрут (опционально)">
-        <input type="text" id="ac_number" placeholder="Номер ВС (опционально)">
-        
+        <input type="text" id="route" placeholder="Маршрут (необязательно)">
+        <input type="text" id="ac_number" placeholder="Номер ВС (необязательно)">
         <button class="main-btn" onclick="startInspection()">Начать проверку</button>
         <button class="secondary-btn" onclick="showHistory()">История проверок</button>
     </section>
 
+    <!-- Экран теста -->
     <section id="screen-test" class="screen hidden">
-        <h2 id="section-title"></h2>
+        <h2 id="section-title">Этап</h2>
         <div id="checklist-items"></div>
-        <div class="navigation-controls">
-            <button id="btn-prev" class="nav-button" onclick="prevSection()">← Назад</button>
-            <button id="btn-next" class="nav-button" onclick="nextSection()">Далее →</button>
+        <div class="navigation-controls no-print">
+            <button id="btn-prev" class="nav-button" onclick="prevSection()">Назад</button>
+            <button id="btn-next" class="nav-button" onclick="nextSection()">Далее</button>
             <button id="btn-finish" class="finish-btn hidden" onclick="finishInspection()">Завершить</button>
         </div>
     </section>
 
+    <!-- Итоги -->
     <section id="screen-report" class="screen hidden">
-        <div id="report-content">
-            <h2 class="report-main-title">ОТЧЕТ ПО ПРОВЕРКЕ</h2>
-            <div class="report-meta">
-                <p><b>Проверяемый:</b> <span id="r_fio"></span></p>
+        <div id="report-print-area">
+            <h2 class="report-main-title">Отчет по результатам проверки</h2>
+            <div class="report-header-info">
+                <p><b>Специалист:</b> <span id="r_fio"></span></p>
+                <p><b>Инструктор:</b> <span id="r_instructor"></span></p>
                 <p><b>Лицензия:</b> <span id="r_license"></span></p>
                 <p><b>Дата:</b> <span id="r_date"></span></p>
                 <p><b>Режим:</b> <span id="r_mode"></span></p>
@@ -55,30 +58,20 @@
                 <p><b>Полетное время:</b> <span id="r_flight_time"></span></p>
             </div>
             <div id="report-data"></div>
-            
-            <div class="signature-section">
-                <p><b>Проверяющий:</b> <span id="r_instructor"></span></p>
-                <p><b>Подпись:</b></p>
-                <canvas id="signature" width="500" height="150"></canvas>
-                <div id="sig-image-placeholder"></div>
-            </div>
         </div>
-        
-        <div class="no-print">
-            <div style="margin-top:20px; border-top:1px solid #ccc; padding-top:15px;">
-                <input type="text" id="flight_time" placeholder="Введите полетное время (напр. 02:30)">
-            </div>
-            <button class="main-btn" onclick="exportPDF()">Печать / Сохранить в PDF</button>
+        <div class="navigation-controls no-print">
+            <button class="main-btn" onclick="window.print()">Печать / PDF</button>
             <button class="secondary-btn" onclick="sendEmail()">Отправить по почте</button>
-            <button class="secondary-btn" onclick="resetApp()">На главную</button>
+            <button class="secondary-btn" onclick="location.reload()">Новая проверка</button>
         </div>
     </section>
 
+    <!-- История -->
     <section id="screen-history" class="screen hidden">
         <h2>История проверок</h2>
-        <div id="historyList"></div>
-        <button class="secondary-btn" onclick="clearHistory()" style="background:var(--red) !important;">Очистить историю</button>
+        <div id="history-list"></div>
         <button class="secondary-btn" onclick="show('screen-start')">Назад</button>
+        <button class="secondary-btn" style="background:#000" onclick="clearHistory()">Очистить историю</button>
     </section>
 </main>
 
