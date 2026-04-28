@@ -120,10 +120,13 @@ function calculateRatings() {
     DATA.checklists.forEach(mainSec => {
         let piloting = [];
         let violations = 0;
+        let hasPilotingSection = false;
+        
         mainSec.sections.forEach(sec => {
             const groups = sec.groups || [{ items: sec.items || [] }];
             groups.forEach(g => g.items.forEach(i => {
                 if (i.type === "radio") {
+                    hasPilotingSection = true;
                     let score = i.ok ? (5 - i.options.indexOf(i.ok)) : 2;
                     piloting.push(score < 2 ? 2 : score);
                 } else if (i.type === "checkbox" && sec.subname !== "Компетенции.") {
@@ -131,8 +134,15 @@ function calculateRatings() {
                 }
             }));
         });
+        
         let pRes = piloting.length ? (piloting.includes(2) ? 2 : Math.round(piloting.reduce((a,b)=>a+b,0)/piloting.length)) : "-";
-        reportHtml += `<div class="rating-block"><b>${mainSec.name}</b> | Техника пилотирования: <span class="score-val">${pRes}</span> | Нарушений: <span class="score-val">${violations}</span></div>`;
+        
+        let ratingLine = `<div class="rating-block"><b>${mainSec.name}</b>`;
+        if (hasPilotingSection) {
+            ratingLine += ` | Техника пилотирования: <span class="score-val">${pRes}</span>`;
+        }
+        ratingLine += ` | Нарушений: <span class="score-val">${violations}</span></div>`;
+        reportHtml += ratingLine;
     });
     return reportHtml + `</div>`;
 }
@@ -143,7 +153,11 @@ function buildReport() {
 
     DATA.checklists.forEach(mainSec => {
         container.innerHTML += `<h2 class="report-main-title">${mainSec.name}</h2>`;
+        
+        // Сначала выводим все секции кроме "Компетенции."
         mainSec.sections.forEach(sec => {
+            if (sec.subname === "Компетенции.") return;
+            
             let sHtml = `<div class="report-section"><h3 class="report-subname">${sec.subname}</h3>`;
             const groups = sec.groups || [{ items: sec.items || [] }];
             groups.forEach(group => {
@@ -165,6 +179,31 @@ function buildReport() {
             container.innerHTML += sHtml + `</div>`;
         });
     });
+
+    // Собираем все секции "Компетенции." со всех этапов
+    let competenciesHtml = '';
+    DATA.checklists.forEach(mainSec => {
+        mainSec.sections.forEach(sec => {
+            if (sec.subname !== "Компетенции.") return;
+            
+            let sHtml = `<div class="report-section"><h3 class="report-subname">${mainSec.name} - ${sec.subname}</h3>`;
+            const groups = sec.groups || [{ items: sec.items || [] }];
+            groups.forEach(group => {
+                if(group.topitem) sHtml += `<h4 class="report-topitem">${group.topitem}</h4>`;
+                group.items.forEach(item => {
+                    if (item.type === "divider") return;
+                    let res = item.type === "checkbox" ? 
+                        `<div class="flex-row">${item.ok ? '<span class="icon-ok">✓ OK</span>' : '<span class="icon-fail">✗ Нарушение</span>'}</div>` :
+                        `<div><b>Оценка:</b> ${item.ok || '2 (н/д)'}</div>`;
+                    sHtml += `<div class="report-item-row"><p style="margin:0 0 5px;">${item.label}</p>${res}</div>`;
+                });
+            });
+            competenciesHtml += sHtml + `</div>`;
+        });
+    });
+
+    // Вставляем компетенции перед блоком подписи
+    document.getElementById("competencies-placeholder").innerHTML = competenciesHtml;
 
     // Мета-данные
     const fields = ["fio", "license", "instructor", "route", "ac_number", "flight_time"];
