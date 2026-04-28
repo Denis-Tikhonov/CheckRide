@@ -23,7 +23,7 @@ header { background: var(--red); color: var(--white); padding: 10px 0; width: 10
 .logo { height: 40px; }
 header h1 { margin: 0; font-size: 1.2rem; }
 
-/* Адаптация рабочей области для разных устройств */
+/* Адаптация рабочей области - растягивание по ширине экрана */
 .screen { 
     background: var(--white); 
     max-width: 800px; 
@@ -35,37 +35,33 @@ header h1 { margin: 0; font-size: 1.2rem; }
     box-sizing: border-box;
 }
 
-/* Landscape режим - уменьшенные боковые отступы */
-@media (orientation: landscape) and (max-width: 1024px) {
+/* Landscape режим - растянуть на всю ширину с отступами 15px */
+@media (orientation: landscape) {
     .screen {
-        margin: 15px;
+        max-width: none;
         width: calc(100% - 30px);
+        margin: 15px;
+    }
+    
+    .header-container {
+        max-width: none;
     }
 }
 
-/* iPad Portrait */
-@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+/* Portrait режим - стандартное поведение */
+@media (orientation: portrait) {
     .screen {
-        max-width: 90%;
-        width: calc(100% - 40px);
+        max-width: 800px;
+        width: calc(100% - 30px);
         margin: 15px auto;
     }
 }
 
-/* iPhone и Android (Portrait) */
+/* Мобильные устройства Portrait - уменьшенные отступы */
 @media (max-width: 767px) and (orientation: portrait) {
     .screen {
         width: calc(100% - 20px);
         margin: 10px auto;
-        padding: 15px;
-    }
-}
-
-/* iPhone и Android (Landscape) */
-@media (max-width: 926px) and (orientation: landscape) {
-    .screen {
-        margin: 15px;
-        width: calc(100% - 30px);
         padding: 15px;
     }
 }
@@ -124,7 +120,23 @@ input[type="file"] { color: var(--dark-grey); font-size: 0.9rem; margin-top: 5px
 
 .rating-summary { background: #333; color: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
 .rating-summary h3 { margin-top: 0; color: var(--red); }
+.rating-block { padding: 8px 0; border-bottom: 1px solid #555; }
+.rating-block:last-child { border-bottom: none; }
 .score-val { color: var(--red); font-weight: bold; }
+
+/* Разделитель внутри блока Сводная оценка */
+.competencies-rating-divider {
+    border-top: 2px solid #666;
+    margin: 15px 0 10px;
+    padding-top: 10px;
+}
+
+.competencies-rating-title {
+    color: var(--red);
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
 
 .report-meta p { margin: 5px 0; border-bottom: 1px solid #eee; padding-bottom: 3px; }
 .report-main-title { color: var(--red); border-bottom: 3px solid var(--red); padding-bottom: 10px; }
@@ -133,6 +145,15 @@ input[type="file"] { color: var(--dark-grey); font-size: 0.9rem; margin-top: 5px
 .flex-row { display: flex; align-items: center; gap: 10px; }
 .icon-ok { color: green; font-weight: normal; font-size: 1rem; }
 .icon-fail { color: var(--red); font-weight: normal; font-size: 1rem; }
+
+/* Убрать margin после названия в стандартных процедурах */
+.report-item-row p {
+    margin: 0 !important;
+}
+
+.report-item-row {
+    margin-bottom: 15px;
+}
 
 /* Стили для техники пилотирования */
 .report-radio-item {
@@ -147,7 +168,7 @@ input[type="file"] { color: var(--dark-grey); font-size: 0.9rem; margin-top: 5px
     margin-bottom: 15px;
 }
 
-/* Разделитель перед компетенциями */
+/* Разделитель перед детальным блоком компетенций */
 .competencies-divider {
     border-top: 3px solid var(--dark-grey);
     margin: 40px 0 30px;

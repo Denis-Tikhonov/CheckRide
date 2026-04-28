@@ -202,11 +202,18 @@ function calculateRatings() {
         reportHtml += ratingLine;
     });
     
-    // Добавляем оценки компетенций
+    // Добавляем разделитель и компетенции в блоке Сводная оценка
     const competencies = calculateCompetencies();
-    for (let code in competencies) {
-        const { score } = competencies[code];
-        reportHtml += `<div class="rating-block"><b>${code}</b>: <span class="score-val">${score}</span></div>`;
+    if (Object.keys(competencies).length > 0) {
+        reportHtml += `<div class="competencies-rating-divider">`;
+        reportHtml += `<div class="competencies-rating-title">Компетенции:</div>`;
+        
+        for (let code in competencies) {
+            const { score } = competencies[code];
+            reportHtml += `<div class="rating-block"><b>${code}</b>: <span class="score-val">${score}</span></div>`;
+        }
+        
+        reportHtml += `</div>`;
     }
     
     return reportHtml + `</div>`;
@@ -232,7 +239,7 @@ function buildReport() {
                     
                     if (item.type === "checkbox") {
                         let res = `<div class="flex-row">${item.ok ? '<span class="icon-ok">✓ OK</span>' : '<span class="icon-fail">✗ Нарушение</span>'}</div>`;
-                        sHtml += `<div class="report-item-row"><p style="margin:0 0 5px;">${item.label}</p>${res}</div>`;
+                        sHtml += `<div class="report-item-row"><p>${item.label}</p>${res}</div>`;
                     } else if (item.type === "radio") {
                         let scoreValue = item.ok || '2 (н/д)';
                         let scoreIndex = item.ok ? item.options.indexOf(item.ok) : -1;
@@ -412,8 +419,31 @@ function exportPDF() { window.print(); }
 
 function sendEmail() {
     const fio = document.getElementById("fio").value;
-    const body = `Отчет по проверке: ${fio}\nДата: ${document.getElementById("r_date").innerText}\nРезультаты в приложении.`;
-    window.location.href = `mailto:?subject=CheckRide Report - ${fio}&body=${encodeURIComponent(body)}`;
+    const license = document.getElementById("license").value;
+    const instructor = document.getElementById("instructor").value;
+    const date = document.getElementById("r_date").innerText;
+    const mode = document.getElementById("r_mode").innerText;
+    const route = document.getElementById("route").value;
+    const acNumber = document.getElementById("ac_number").value;
+    const flightTime = document.getElementById("flight_time").value;
+    
+    // Формирование детального тела письма
+    let body = `ОТЧЕТ ПО ПРОВЕРКЕ\n\n`;
+    body += `Проверяемый: ${fio}\n`;
+    body += `Лицензия: ${license}\n`;
+    body += `Дата: ${date}\n`;
+    body += `Режим: ${mode}\n`;
+    if (route) body += `Маршрут: ${route}\n`;
+    if (acNumber) body += `Номер ВС: ${acNumber}\n`;
+    if (flightTime) body += `Полетное время: ${flightTime}\n`;
+    body += `\nПроверяющий: ${instructor}\n`;
+    body += `\n---\n\n`;
+    body += `Полный отчет доступен в приложении или в печатной версии.\n`;
+    body += `Для получения детального отчета откройте приложение CheckRide Rating.`;
+    
+    const subject = `CheckRide Report - ${fio} (${date})`;
+    
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
