@@ -115,8 +115,65 @@ function saveState() {
     });
 }
 
+// Функция расчета оценок компетенций
+function calculateCompetencies() {
+    const competencyMap = {}; // { "ПП": { total: 10, checked: 7, items: [...] }, ... }
+    
+    DATA.checklists.forEach(mainSec => {
+        mainSec.sections.forEach(sec => {
+            if (sec.subname !== "Компетенции.") return;
+            
+            const groups = sec.groups || [{ items: sec.items || [] }];
+            groups.forEach(group => {
+                const compCode = group.topitem || "Общие";
+                
+                if (!competencyMap[compCode]) {
+                    competencyMap[compCode] = { total: 0, checked: 0, items: [] };
+                }
+                
+                group.items.forEach(item => {
+                    if (item.type !== "checkbox") return;
+                    competencyMap[compCode].total++;
+                    if (item.ok) competencyMap[compCode].checked++;
+                    
+                    // Сохраняем item с его состоянием для последующего вывода
+                    const existingItem = competencyMap[compCode].items.find(i => i.label === item.label);
+                    if (!existingItem) {
+                        competencyMap[compCode].items.push({
+                            label: item.label,
+                            checked: item.ok ? 1 : 0,
+                            count: 1
+                        });
+                    } else {
+                        existingItem.count++;
+                        if (item.ok) existingItem.checked++;
+                    }
+                });
+            });
+        });
+    });
+    
+    // Расчет итоговых оценок
+    const competencyScores = {};
+    for (let code in competencyMap) {
+        const { total, checked } = competencyMap[code];
+        const percent = total > 0 ? (checked / total) * 100 : 0;
+        
+        let score = 2;
+        if (percent >= 70) score = 5;
+        else if (percent >= 50) score = 4;
+        else if (percent >= 25) score = 3;
+        
+        competencyScores[code] = { score, percent, items: competencyMap[code].items };
+    }
+    
+    return competencyScores;
+}
+
 function calculateRatings() {
     let reportHtml = `<div class="rating-summary"><h3>Сводная оценка</h3>`;
+    
+    // Оценки по этапам
     DATA.checklists.forEach(mainSec => {
         let piloting = [];
         let violations = 0;
@@ -144,6 +201,14 @@ function calculateRatings() {
         ratingLine += ` | Нарушений: <span class="score-val">${violations}</span></div>`;
         reportHtml += ratingLine;
     });
+    
+    // Добавляем оценки компетенций
+    const competencies = calculateCompetencies();
+    for (let code in competencies) {
+        const { score } = competencies[code];
+        reportHtml += `<div class="rating-block"><b>${code}</b>: <span class="score-val">${score}</span></div>`;
+    }
+    
     return reportHtml + `</div>`;
 }
 
@@ -169,7 +234,6 @@ function buildReport() {
                         let res = `<div class="flex-row">${item.ok ? '<span class="icon-ok">✓ OK</span>' : '<span class="icon-fail">✗ Нарушение</span>'}</div>`;
                         sHtml += `<div class="report-item-row"><p style="margin:0 0 5px;">${item.label}</p>${res}</div>`;
                     } else if (item.type === "radio") {
-                        // Новый формат для radio: название на отдельной строке, оценка ниже
                         let scoreValue = item.ok || '2 (н/д)';
                         let scoreIndex = item.ok ? item.options.indexOf(item.ok) : -1;
                         let actualScore = scoreIndex >= 0 ? (5 - scoreIndex) : 2;
@@ -193,29 +257,44 @@ function buildReport() {
         });
     });
 
-    // Собираем все секции "Компетенции." со всех этапов
-    let competenciesHtml = '';
-    DATA.checklists.forEach(mainSec => {
-        mainSec.sections.forEach(sec => {
-            if (sec.subname !== "Компетенции.") return;
+    // Формируем блок компетенций
+    const competencies = calculateCompetencies();
+    let competenciesHtml = '<div class="report-section"><h2 class="report-main-title">Компетенции</h2>';
+    
+    for (let code in competencies) {
+        const { items } = competencies[code];
+        competenciesHtml += `<h3 class="report-subname">${code}</h3>`;
+        
+        items.forEach(item => {
+            const percent = item.count > 0 ? (item.checked / item.count) * 100 : 0;
+            let score = 2;
+            if (percent >= 70) score = 5;
+            else if (percent >= 50) score = 4;
+            else if (percent >= 25) score = 3;
             
-            let sHtml = `<div class="report-section"><h3 class="report-subname">${mainSec.name} - ${sec.subname}</h3>`;
-            const groups = sec.groups || [{ items: sec.items || [] }];
-            groups.forEach(group => {
-                if(group.topitem) sHtml += `<h4 class="report-topitem">${group.topitem}</h4>`;
-                group.items.forEach(item => {
-                    if (item.type === "divider") return;
-                    let res = item.type === "checkbox" ? 
-                        `<div class="flex-row">${item.ok ? '<span class="icon-ok">✓ OK</span>' : '<span class="icon-fail">✗ Нарушение</span>'}</div>` :
-                        `<div><b>Оценка:</b> ${item.ok || '2 (н/д)'}</div>`;
-                    sHtml += `<div class="report-item-row"><p style="margin:0 0 5px;">${item.label}</p>${res}</div>`;
-                });
-            });
-            competenciesHtml += sHtml + `</div>`;
+            let prefix = "";
+            let colorClass = "";
+            
+            if (score === 5) {
+                prefix = "Всегда";
+            } else if (score === 4) {
+                prefix = "Регулярно";
+            } else if (score === 3) {
+                prefix = "Иногда";
+                colorClass = "comp-yellow";
+            } else {
+                prefix = "Редко";
+                colorClass = "comp-red";
+            }
+            
+            // Преобразуем первую букву в строчную для естественного чтения
+            let labelText = item.label.charAt(0).toLowerCase() + item.label.slice(1);
+            
+            competenciesHtml += `<div class="competency-item ${colorClass}">- ${prefix} ${labelText}</div>`;
         });
-    });
-
-    // Вставляем компетенции перед блоком подписи
+    }
+    
+    competenciesHtml += '</div>';
     document.getElementById("competencies-placeholder").innerHTML = competenciesHtml;
 
     // Мета-данные
@@ -263,7 +342,6 @@ function updateNav() {
 function finishInspection() {
     saveState();
     
-    // Запрос полетного времени
     const flightTime = prompt("Введите полетное время (например, 02:30):");
     if (flightTime) {
         document.getElementById("flight_time").value = flightTime;
