@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CheckRide Rating V8</title>
+    <title>CheckRide Rating</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="no-print">
     <div class="header-container">
-        <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+        <img src="logo.svg" alt="Logo" class="logo" onerror="this.style.display='none'">
         <h1>CheckRide Rating</h1>
     </div>
 </header>
@@ -25,9 +25,6 @@
         <input type="text" id="fio" placeholder="ФИО проверяемого">
         <input type="text" id="license" placeholder="Номер лицензии">
         <input type="text" id="instructor" placeholder="Проверяющий (Инструктор)">
-        <input type="text" id="route" placeholder="Маршрут (опционально)">
-        <input type="text" id="ac_number" placeholder="Номер ВС (опционально)">
-        
         <button class="main-btn" onclick="startInspection()">Начать проверку</button>
         <button class="secondary-btn" onclick="showHistory()">История проверок</button>
     </section>
@@ -50,24 +47,16 @@
                 <p><b>Лицензия:</b> <span id="r_license"></span></p>
                 <p><b>Дата:</b> <span id="r_date"></span></p>
                 <p><b>Режим:</b> <span id="r_mode"></span></p>
-                <p><b>Маршрут:</b> <span id="r_route"></span></p>
-                <p><b>Номер ВС:</b> <span id="r_ac_number"></span></p>
-                <p><b>Полетное время:</b> <span id="r_flight_time"></span></p>
             </div>
             <div id="report-data"></div>
-            
             <div class="signature-section">
                 <p><b>Проверяющий:</b> <span id="r_instructor"></span></p>
                 <p><b>Подпись:</b></p>
-                <canvas id="signature" width="500" height="150"></canvas>
+                <canvas id="signature" width="400" height="150"></canvas>
                 <div id="sig-image-placeholder"></div>
             </div>
         </div>
-        
         <div class="no-print">
-            <div style="margin-top:20px; border-top:1px solid #ccc; padding-top:15px;">
-                <input type="text" id="flight_time" placeholder="Введите полетное время (напр. 02:30)">
-            </div>
             <button class="main-btn" onclick="exportPDF()">Печать / Сохранить в PDF</button>
             <button class="secondary-btn" onclick="sendEmail()">Отправить по почте</button>
             <button class="secondary-btn" onclick="resetApp()">На главную</button>
@@ -77,7 +66,7 @@
     <section id="screen-history" class="screen hidden">
         <h2>История проверок</h2>
         <div id="historyList"></div>
-        <button class="secondary-btn" onclick="clearHistory()" style="background:var(--red) !important;">Очистить историю</button>
+        <button class="secondary-btn clear-btn" onclick="clearHistory()" style="background:var(--red) !important; color:white;">Очистить историю</button>
         <button class="secondary-btn" onclick="show('screen-start')">Назад</button>
     </section>
 </main>
