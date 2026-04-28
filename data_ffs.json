@@ -16,6 +16,11 @@
               "type": "checkbox",
               "label": "Ознакомление с документацией."
             },
+	{
+	  "id": "div_1",
+	  "type": "divider",
+	  "label": "На земле"
+	}
             {
               "id": "Preflight_pf_3",
               "type": "checkbox",
