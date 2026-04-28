@@ -164,10 +164,23 @@ function buildReport() {
                 if(group.topitem) sHtml += `<h4 class="report-topitem">${group.topitem}</h4>`;
                 group.items.forEach(item => {
                     if (item.type === "divider") return;
-                    let res = item.type === "checkbox" ? 
-                        `<div class="flex-row">${item.ok ? '<span class="icon-ok">✓ OK</span>' : '<span class="icon-fail">✗ Нарушение</span>'}</div>` :
-                        `<div><b>Оценка:</b> ${item.ok || '2 (н/д)'}</div>`;
-                    sHtml += `<div class="report-item-row"><p style="margin:0 0 5px;">${item.label}</p>${res}</div>`;
+                    
+                    if (item.type === "checkbox") {
+                        let res = `<div class="flex-row">${item.ok ? '<span class="icon-ok">✓ OK</span>' : '<span class="icon-fail">✗ Нарушение</span>'}</div>`;
+                        sHtml += `<div class="report-item-row"><p style="margin:0 0 5px;">${item.label}</p>${res}</div>`;
+                    } else if (item.type === "radio") {
+                        // Новый формат для radio: название на отдельной строке, оценка ниже
+                        let scoreValue = item.ok || '2 (н/д)';
+                        let scoreIndex = item.ok ? item.options.indexOf(item.ok) : -1;
+                        let actualScore = scoreIndex >= 0 ? (5 - scoreIndex) : 2;
+                        
+                        sHtml += `<div class="report-item-row report-radio-item">
+                            <p style="margin:0 0 8px; font-weight:600;">${item.label}</p>
+                            <div style="padding-left:15px;">
+                                <b>Оценка:</b> ${actualScore} - ${scoreValue}
+                            </div>
+                        </div>`;
+                    }
                 });
             });
             if (sec.note || sec.img) {
