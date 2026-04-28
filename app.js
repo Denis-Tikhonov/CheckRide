@@ -239,7 +239,7 @@ function buildReport() {
                         let actualScore = scoreIndex >= 0 ? (5 - scoreIndex) : 2;
                         
                         sHtml += `<div class="report-item-row report-radio-item">
-                            <p style="margin:0 0 8px; font-weight:600;">${item.label}</p>
+                            <p style="font-weight:600;">${item.label}</p>
                             <div style="padding-left:15px;">
                                 <b>Оценка:</b> ${actualScore} - ${scoreValue}
                             </div>
@@ -257,13 +257,14 @@ function buildReport() {
         });
     });
 
-    // Формируем блок компетенций
+    // Формируем блок компетенций с разделителем
     const competencies = calculateCompetencies();
-    let competenciesHtml = '<div class="report-section"><h2 class="report-main-title">Компетенции</h2>';
+    let competenciesHtml = '<div class="competencies-divider">';
+    competenciesHtml += '<h2 class="competencies-title">Компетенции:</h2>';
     
     for (let code in competencies) {
         const { items } = competencies[code];
-        competenciesHtml += `<h3 class="report-subname">${code}</h3>`;
+        competenciesHtml += `<div class="report-section"><h3 class="report-subname">${code}</h3>`;
         
         items.forEach(item => {
             const percent = item.count > 0 ? (item.checked / item.count) * 100 : 0;
@@ -287,11 +288,12 @@ function buildReport() {
                 colorClass = "comp-red";
             }
             
-            // Преобразуем первую букву в строчную для естественного чтения
             let labelText = item.label.charAt(0).toLowerCase() + item.label.slice(1);
             
             competenciesHtml += `<div class="competency-item ${colorClass}">- ${prefix} ${labelText}</div>`;
         });
+        
+        competenciesHtml += '</div>';
     }
     
     competenciesHtml += '</div>';
